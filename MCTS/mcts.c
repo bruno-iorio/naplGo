@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "../Mechanics/board.h"
 #define INIT_CAP  20
+
+
 typedef struct MC_node{
   struct MC_node *next;
   int leaf;
@@ -11,6 +13,14 @@ typedef struct MC_node{
   int children;
   int capacity;
 } MC_node;
+
+void init_node(MC_node*);
+void add_win(MC_node*);
+void add_game(MC_node*);
+int is_root(MC_node*);
+int is_leaf(MC_node*);
+void add_node(MC_node*,MC_node*);
+
 
 void init_node(MC_node* node){
   node->children = 0;
@@ -50,15 +60,13 @@ void add_node(MC_node* node, MC_node* other){
 }
 
 
-
-/* 
 int main(){
   MC_node first;
   MC_node second;
   init_node(&first);
   init_node(&second);
   add_node(&first,&second);
-  printf("%d %d %d %d/n",first.children,first.capacity,first.leaf,first.root);
-  printf("%d %d %d %d/n",second.children,second.capacity,second.leaf,second.root);
+  printf("%d %d %d %d\n",first.children,first.capacity,first.leaf,first.root);
+  printf("%d %d %d %d\n",second.children,second.capacity,second.leaf,second.root);
   return 0;
-}*/
+}
