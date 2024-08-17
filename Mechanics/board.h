@@ -13,6 +13,12 @@ typedef struct board{
   int turn; //1 if black, 2 if white
 } board;
 
+typedef struct grid {
+  int** tab;
+} grid;
+
+int play_move_out_of_match(board*,grid*,grid*,int*,int*,int*,char*,int*);
+void list_possible_moves(int*,int*,int*,board*,grid*,grid*,int,int,int);
 int play_move(board*, int,int,int);
 int play_match(board*);
 int capture_group(board*, int*, int*, int);
