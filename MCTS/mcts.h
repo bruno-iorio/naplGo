@@ -2,15 +2,21 @@
 #define MCTS_H
 #include "../Mechanics/board.h"
 typedef struct MC_node{
-  struct MC_node *next;
-  board* Board;
-  grid *copy1,*copy2;
-  int leaf;
-  int root;
+
+  struct MC_node **next;
+  int turn;
+  int pass_count;
+  int count; 
+  int Ko_check;
+  board Board;
+  grid copy1;
+  grid copy2;
+  int* possiblex;
+  int* possibley;
+  int possible_size
   int w; // games played and won --> important for the search algo
   int n; // games played in total
   int children;
-  int capacity;
 } MC_node;
 
 

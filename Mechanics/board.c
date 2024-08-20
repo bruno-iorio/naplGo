@@ -162,7 +162,7 @@ int play_match(board* Board){
     if(Board->grid[x][y] ==EMPTY){
       print_grid(copy2,BOARDSIZE);
       print_grid(copy1,BOARDSIZE);
-      play_move(Board,turn,x,y);
+      play_move(turn,x,y);
 
       int n[5];
       int group_x[5][361], group_y[5][361]; 
@@ -241,8 +241,8 @@ void copy_board(int** grid2, int** grid1, int n){
 }
 }
 
-int play_move_out_of_match(board* Board,grid* copy1, grid* copy2, int* turn,int *pass_count,int *count,char move[7],int* Ko_check){
-  int x, y;
+int play_move_out_of_match(board* Board,grid* copy1, grid* copy2, int* turn,int *pass_count,
+                           int *count,int x, int y,int* Ko_check){
   if(!strncmp(move,"pass",4)){
       print_board(Board);
       (*pass_count)++;
@@ -250,15 +250,12 @@ int play_move_out_of_match(board* Board,grid* copy1, grid* copy2, int* turn,int 
       if(*pass_count == 2){
         return 1; //game over;
     }
-    memset(move,0,7);
     (*count)++;
     *turn = (*turn == BLACK) ? WHITE : BLACK; 
     return 0;
     }
-    sscanf(move,"%d %d",&x,&y);
     if(x <= 0 || x >= BOARDSIZE-1 || y <= 0 || y >= BOARDSIZE-1){
       printf("Invalid input\n");
-      memset(move,0,7);
     return 5; // input out of board.
     }
 
@@ -300,10 +297,8 @@ int play_move_out_of_match(board* Board,grid* copy1, grid* copy2, int* turn,int 
     if(find_group_liberties(Board,group_x[0],group_x[0],x,y,&n[0]) == 1){
       printf("invalid move\n");
       play_move(Board,EMPTY,x,y);
-      memset(move,0,7);
       return 3; //suicide without caputre;
     }
-    memset(move,0,7);
     if(*Ko_check == 1 && captured_flag == 1){  
       if(!compare_boards(Board->grid,copy2->tab,BOARDSIZE)&& *count > 1){
         copy_board(Board->grid,copy1->tab,BOARDSIZE);
@@ -322,7 +317,8 @@ int play_move_out_of_match(board* Board,grid* copy1, grid* copy2, int* turn,int 
   return 0;
 }
 
-void list_possible_moves(int* x_list,int* y_list,int* numb, board* Board,grid* copy1, grid* copy2, int turn,int count,int Ko_check){
+void list_possible_moves(int* x_list,int* y_list,int* numb, board* Board,grid* copy1,
+                         grid* copy2, int turn,int count,int Ko_check){
   for(int x = 1; x < BOARDSIZE-1; x++){
     for(int y = 1; y < BOARDSIZE-1; y++){
       if(Board->grid[x][y] ==EMPTY){
@@ -383,5 +379,37 @@ void list_possible_moves(int* x_list,int* y_list,int* numb, board* Board,grid* c
       } 
     }
   }
+}
+
+int count_points(board* Board){ //only for games that where finished
+  int black_points = 0, white_points = 0;
+  for(int x = 1; x<BOARDSIZE-1;x++){
+    for(int y = 1; y<BOARDSIZE-1;y++){
+      if (Board->grid[x][y] == BLACK){
+        black_points++;
+      }
+      else if (Board->grid[x][y] == WHITE){
+        white_points++;
+      }
+      else{
+        if(Board->grid[x+1][y] != WHITE &&
+           Board->grid[x-1][y] != WHITE &&
+           Board->grid[x][y-1] != WHITE &&
+           Board->grid[x][y+1] != WHITE){
+           black_points++;
+        }
+        if(Board->grid[x+1][y] != BLACK &&
+           Board->grid[x-1][y] != BLACK &&
+           Board->grid[x][y-1] != BLACK &&
+           Board->grid[x][y+1] != BLACK){
+           white_points++;
+        }
+
+      }
+    }
+  }
+
+return (white_points + 1 > black_points);
+
 }
 
