@@ -10,21 +10,19 @@
 
 typedef struct board{
   int** grid;
-  int turn; //1 if black, 2 if white
 } board;
 
 typedef struct grid {
   int** tab;
 } grid;
 
-int play_move_out_of_match(board*,grid*,grid*,int*,int*,int*,char*,int*);
-void list_possible_moves(int*,int*,int*,board*,grid*,grid*,int,int,int);
+int play_move_out_of_match(board*,grid*,grid*,int*,int*,int*,int, int,int*);
+void list_possible_moves(int**,int**,int*,board*,grid*,grid*,int,int,int,int*);
 int play_move(board*, int,int,int);
-int play_match(board*);
 int capture_group(board*, int*, int*, int);
 void print_board(board*);
 board* create_board();
-void print_grid(int**, int);
+void print_grid(int**);
 int compare_boards(int**,int**, int);
 void copy_board(int**,int**,int);
 int find_group_liberties(board*,int*,int*,int,int,int*);
