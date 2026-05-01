@@ -10,6 +10,7 @@
 
 typedef struct board{
   int** grid;
+  int** groups;
   int turn; //1 if black, 2 if white
 } board;
 
