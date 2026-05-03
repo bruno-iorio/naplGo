@@ -17,23 +17,21 @@
 #define POS_RIGHT(pos)        pos + 1
 #define POS_UP(pos)           pos - DEFAULT_SIZE
 #define POS_DOWN(pos)         pos + DEFAULT_SIZE
-#define POS_CHECK(pos, dir)                   \ 
-  do {                                        \
-    if (dir == UP) return POS_UP(pos);        \ 
-    if (dir == DOWN) return POS_DOWN(pos);    \
-    if (dir == LEFT) return POS_LEFT(pos);    \
-    if (dir == RIGHT) return POS_RIGHT(pos);  \
-  } while (0)
 
-#define INBOUNDS_CHECK(pos, dir)                                          \
-  do {                                                                   \
-    if (dir == UP && pos / DEFAULT_SIZE == 0) return 1;                  \
-    if (dir == DOWN && pos / DEFAULT_SIZE == DEFAULT_SIZE-1) return 1;   \
-    if (dir == LEFT && pos / DEFAULT_SIZE == 0) return 1;                \
-    if (dir == RIGHT && pos / DEFAULT_SIZE == DEFAULT_SIZE-1) return 1;  \
-    return 0;                                                            \
-  } while(0)
+int POS_CHECK(pos, dir)  {
+    if (dir == UP)    return POS_UP(pos);
+    if (dir == DOWN)  return POS_DOWN(pos);
+    if (dir == LEFT)  return POS_LEFT(pos);
+    if (dir == RIGHT) return POS_RIGHT(pos);
+  }
 
+int INBOUNDS_CHECK(pos, dir) {
+    if (dir == UP && pos / DEFAULT_SIZE == 0                  ||
+        dir == DOWN && pos / DEFAULT_SIZE == DEFAULT_SIZE-1   ||
+        dir == LEFT && pos / DEFAULT_SIZE == 0                ||
+        dir == RIGHT && pos / DEFAULT_SIZE == DEFAULT_SIZE-1) return 1;
+      return 0;
+}
 #define EMPTY                 0
 #define BLACK                 1
 #define WHITE                 2
@@ -44,7 +42,6 @@ typedef struct{
   int Id;
   int color;
   int head;
-  int libertiesSet[BOARD_SIZE(DEFAULT_SIZE)];
   int libertyCount;
 } Chain;
 
@@ -84,18 +81,25 @@ int mergeChain(Game *game, int to_check_list[4], int pos, int chain_id, int capt
   for (int dir = 0 ; dir < 4; dir++){
     int pos_check = POS_CHECK(pos);
     if (INBOUNDS_CHECK(pos,dir) && game->Board[pos_check].color == game->Board[pos].color){
-      merged = 1;
+      // if valid and merging is necessary pos becomes the head and chain_id changes
       int search = pos;
       chain_id = game->Board[pos_check].chainId;
       while (game->Board[search].nextPos  !=  -1) {
+        // update lib_cnt , update the chain of search,  update search.
         lib_cnt += markLiberties(&game, search, &mark);
         game->Board[search].chainId = chain_id;
         search = game->Board[search].nextPos;
       }
-      game->Board[search].nextPos = game->chains[chain_id].head;
-      game->chains[chain_id] = pos;
+      // process the last one
+      lib_cnt += markLiberties(&game, search, &mark);
+      game->Board[search].chainId = chain_id;
+      
+      // merge: 
+      gane->Board[search].next = game->chains[chain_id].head;
+      game->chains[chainId].head = pos;
     }
-      if (to_check_list[dir] && game->Board[pos_check].color != game->Board[pos].color && game->Board[pos_check].color != EMPTY){
+      if (INBOUNDS_CHECK(pos, dir) && game->Board[pos_check].color != game->Board[pos].color && game->Board[pos_check].color != EMPTY){ 
+        // check if captured
         if(--(game->chains[game->Board[pos_check].chainId].libertiesCount) == 0){
           captured_chains[cap_cnt++] = game->Board[pos_check].chainId;
         }
@@ -137,7 +141,7 @@ void play(Game *game, int x, int y){
     game->Board[coord].color = game->turn;
 
     Chain newChain;
-    memset(&newChain,0,sizeof(newChain));
+    memset(&newChain, 0, sizeof(newChain));
     newChain.color = game->turn;
     newChain.head  = coord;
     newChain.Id    = chainCount;
@@ -145,13 +149,8 @@ void play(Game *game, int x, int y){
     game->Board[coord].chainId = chainCount;
     game->Board[coord].newPos  = -1; // points to nothing
 
-    int to_check_list[4] = (int) {1,1,1,1};
-    if      (x == 0)                to_check_list[LEFT]  = 0;
-    else if (x == DEFAULT_SIZE - 1) to_check_list[RIGHT] = 0;
-    if      (y == 0)                to_check_list[UP]    = 0;
-    else if (y == DEFAULT_SIZE - 1) to_check_list[DOWN]  = 0;
     for (int dir = 0 ; dir < 4; dir++){
-      if (to_check_list[dir] && game->Board[POS_CHECK(dir)].color == EMPTY ) newChain.libertiesCount++;
+      if (INBOUNDS_CHECK(pos,dir) && game->Board[POS_CHECK(dir)].color == EMPTY ) newChain.libertiesCount++;
     }
     
     int captured_chains[4] = {-1,-1,-1,-1};
