@@ -1,233 +1,80 @@
 #include <stdlib.h>
 #include<stdio.h>
 #include <string.h>
-#define DEFAULT_SIZE 19
-#define BLACK 0
-#define WHITE 1
-#define MAX_QUEUE_SIZE 200
+
+#define DEFAULT_SIZE          19
+#define MAX_CHAIN_LIST_SIZE   300
+#define MAX_LIBERTY_LIST_SIZE 300
+
+#define POS(x,y)              y * DEFAULT_SIZE + x
+
+#define EMPTY                 0
+#define BLACK                 1
+#define WHITE                 2
+
+#define LEFT                  0
+#define RIGHT                 1
+#define UP                    2
+#define DOWN                  3
+
+// chains inspired from katago engine
 
 typedef struct{
-  int n_up;
-  int n_down;
-  int n_left;
-  int n_right;
+  int Id;
+  int color;
+  int head;
+  int libertiesList[MAX_LIBERTY_LIST_SIZE];
+  int libertyCount;
+} Chain;
+
+typedef struct{
+  int color;
+  int chainId;
+  int nextPos;
 } Node;
 
 typedef struct{
-  Node groups[DEFAULT_SIZE][DEFAULT_SIZE];
-  int liberty_cnt[DEFAULT_SIZE][DEFAULT_SIZE];
-  int grid[DEFAULT_SIZE][DEFAULT_SIZE]; 
-} Board;
-
-typedef struct{
-  Board b;
+  Node Board[DEFAULT_SIZE];
+  Chain chains[MAX_CHAIN_LIST_SIZE];
+  int chainCount;
   int turn;
-  int ko;
+  int ko_x, ko_y, ko_act;
 } Game;
-typedef struct{
-  int x,y;
-} Coord;
-typedef struct{
-  Coord data[MAX_QUEUE_SIZE];
-  int top;
-  int tail;
-} Queue;
 
-Coord pop(Queue* q){
-  if (q->tail > q->top) {
-    q->top++;
-    return q->data[q->top - 1];
-  }
-  return q->data[q->top];
-}
-
-void push(Queue* q, Coord p){
-  q->data[q->tail++] = p;
-  return;
-}
-
-int isEmpty(Queue q){
-  if (q->tail == q->top) return 1;
-  return 0;
-}
-
-
-void update_group(Board* b, int x, int y){
-    if (x < DEFAULT_SIZE - 1 && b->grid[x+1][y] == b->grid[x][y]){
-      b->groups[x][y].n_right  = 1;
-      b->groups[x+1][y].n_left = 1;
-    }
-    if (x > 0 && b->grid[x-1][y] == b->grid[x][y]){
-      b->groups[x][y].n_left= 1;
-      b->groups[x-1][y].n_right = 1;
-    }
-    if (y < DEFAULT_SIZE - 1 && b->grid[x][y+1] == b->grid[x][y]){
-      b->groups[x][y].n_down= 1;
-      b->groups[x][y+1].n_up = 1;
-    }
-    if (y > 0 && b->grid[x][y-1] == b->grid[x][y]){
-      b->groups[x][y].n_up= 1;
-      b->groups[x][y-1].n_down= 1;
-    }
- return;
-}
-void update_liberties(Board* b, int x, int y){
-  int b_[DEFAULT_SIZE][DEFAULT_SIZE] = {0};
-  int visited[DEFAULT_SIZE][DEFAULT_SIZE] = {0};
-  int visited_update[DEFAULT_SIZE][DEFAULT_SIZE] = {0};
-  int sum = 0;
-  Queue q = create_queue();
-  push(&q, (Coord) {x,y});
-  while (!isEmpty(q)){
-    Coord next = pop(&q);
-    int x_ = next.x;
-    int y_ = next.y;
-    if (x_ == 0 && y == 0) {
-      if (b->grid[x_+1][y_] == 0 && b_[x_+1][y_] == 0){
-        b_[x_+1][y_] = 1;
-        sum++;
-      }
-      if (b->grid[x_][y_+1] == 0 && b_[x_][y_+1] == 0){
-        b_[x_][y_+1] = 1;
-        sum++;
-      }
-    }
-
-    else if (x_ == DEFAULT_SIZE - 1 && y_ == DEFAULT_SIZE-1){
-      if (b->grid[x_-1][y_] == 0 && b_[x_-1][y_] == 0){
-        b_[x_-1][y_] = 1;
-        sum++;
-      }
-      if (b->grid[x_][y_-1] == 0 && b_[x_][y_-1] == 0){
-        b_[x_][y_-1] = 1;
-        sum++;
-      }
-    }
-
-    else if (x_ == 0 && y_ < DEFAULT_SIZE-1 && y_ > 0){
-      if (b->grid[x_+1][y_] == 0 && b_[x_+1][y_] == 0){
-        b_[x_-1][y_] = 1;
-        sum++;
-      }
-      if (b->grid[x_][y_-1] == 0 && b_[x_][y_-1] == 0){
-        b_[x_][y_-1] = 1;
-        sum++;
-      }      
-      if (b->grid[x_][y_+1] == 0 && b_[x_][y_+1] == 0){
-        b_[x_][y_+1] = 1;
-        sum++;
-      }
-    }
-    
-    else if (x_ == DEFAULT_SIZE-1 && y_ < DEFAULT_SIZE-1 && y_ > 0){
-      if (b->grid[x_-1][y_] == 0 && b_[x_-1][y_] == 0){
-        b_[x_-1][y_] = 1;
-        sum++;
-      }
-      if (b->grid[x_][y_-1] == 0 && b_[x_][y_-1] == 0){
-        b_[x_][y_-1] = 1;
-        sum++;
-      }      
-      if (b->grid[x_][y_+1] == 0 && b_[x_][y_+1] == 0){
-        b_[x_][y_+1] = 1;
-        sum++;
-      }
-    }
-
-    else if (y_ == 0 && x_ < DEFAULT_SIZE-1 && x_ > 0){
-      if (b->grid[x_+1][y_] == 0 && b_[x_+1][y_] == 0){
-        b_[x_+1][y_] = 1;
-        sum++;
-      }
-      if (b->grid[x_-1][y_] == 0 && b_[x_-1][y_] == 0){
-        b_[x_-1][y_] = 1;
-        sum++;
-      }      
-      if (b->grid[x_][y_+1] == 0 && b_[x_][y_+1] == 0){
-        b_[x_][y_+1] = 1;
-        sum++;
-      }
-    }
-    else if (y_ == DEFAULT_SIZE-1 && x_ < DEFAULT_SIZE-1 && x_ > 0){
-      if (b->grid[x_-1][y_] == 0 && b_[x_-1][y_] == 0){
-        b_[x_-1][y_] = 1;
-        sum++;
-      }
-      if (b->grid[x_][y_-1] == 0 && b_[x_][y_-1] == 0){
-        b_[x_][y_-1] = 1;
-        sum++;
-      }      
-      if (b->grid[x_+1][y_] == 0 && b_[x_+1][y_] == 0){
-        b_[x_+1][y_] = 1;
-        sum++;
-      }
-    }
-    else{
-      if (b->grid[x_-1][y_] == 0 && b_[x_-1][y_] == 0){
-        b_[x_-1][y_] = 1;
-        sum++;
-      }
-      if (b->grid[x_][y_-1] == 0 && b_[x_][y_-1] == 0){
-        b_[x_][y_-1] = 1;
-        sum++;
-      }      
-      if (b->grid[x_+1][y_] == 0 && b_[x_+1][y_] == 0){
-        b_[x_+1][y_] = 1;
-        sum++;
-      }
-      if (b->grid[x_][y_+1] == 0 && b_[x_][y_+1] == 0){
-        b_[x_][y_+1] = 1;
-        sum++;
-      }
-    }
-
-    if (b->groups[x_][y_].n_up && !visited[x_][y-1_] ){
-      push(&q, (Coord) {x_,y_-1});
-    }
-    if (b->groups[x_][y_].n_down && !visited[x_][y+1_]){
-      push(&q, (Coord) {x_,y_+1});
-    }
-    if (b->groups[x_][y_].n_left && !visited[x_-1][y-1_]){
-      push(&q, (Coord) {x_-1,y_});
-    }
-    if (b->groups[x_][y_].n_right && !visited[x_+1][y_]){
-      push(&q, (Coord) {x_+1,y_});
-    }
-  }
-  Queue q_update;
-  push(&q_update,(Coord) {x,y});
-  while (!isEmpty(q_update)){
-    Coord next = pop(&q_update);
-    int x_ = next.x;
-    int y_ = next.y;
-    b->liberty_cnt[x_][y_] = sum;
-    if (b->groups[x_][y_].n_up && !visited_update[x_][y-1_] ){
-      push(&q_update, (Coord) {x_,y_-1});
-    }
-    if (b->groups[x_][y_].n_down && !visited_update[x_][y+1_]){
-      push(&q_update, (Coord) {x_,y_+1});
-    }
-    if (b->groups[x_][y_].n_left && !visited_update[x_-1][y-1_]){
-      push(&q_update, (Coord) {x_-1,y_});
-    }
-    if (b->groups[x_][y_].n_right && !visited_update[x_+1][y_]){
-      push(&q_update, (Coord) {x_+1,y_});
-    }
-  }
+void mergeChain(Game *game, int to_check_list[4], Chain newChain, pos){
+  // check if new chain and other chains need merge, if yes
+  // merge them and update libertyList
+  // Otherwise add new chain to chain list and update chain Count and libertiesList of the old chain;
+  to_check_list[UP]    = (to_check_list[UP]    && game->Board[pos - DEFAULT_SIZE] == game->Board[pos]);
+  to_check_list[DOWN]  = (to_check_list[DOWN]  && game->Board[pos + DEFAULT_SIZE] == game->Board[pos]);
+  to_check_list[LEFT]  = (to_check_list[LEFT]  && game->Board[pos - 1] == game->Board[pos]);
+  to_check_list[RIGHT] = (to_check_list[RIGHT] && game->Board[pos + 1] == game->Board[pos]);
   return;
 }
 
 void play(Game *game, int x, int y){ 
-  // add stone and then merge it with possible groups
   if (0 <= x && x < DEFAULT_SIZE && 0 <= y  && y <  DEFAULT_SIZE){
-    game->b.grid[x][y] = game->turn + 1;
-    update_group(&(game->b),x,y);
-    // update_liberties(x);
-    game->turn = (game->turn == 1) ? 0 : 1;
-  }
+    int coord = POS(x,y);
+    game->Board[coord].color = game->turn;
+    Chain newChain;
+    memset(&newChain,0,sizeof(newChain));
+    newChain.color = game->turn;
+    newChain.head  = coord;
+    newChain.Id    = chainCount;
+    game->Board[coord].chainId = chainCount;
+    game->Board[coord].newPos  = -1; // points to nothing
 
+    int to_check_list[4] = (int) {1,1,1,1};
+    if      (x == 0)                to_check_list[0] = 0;
+    else if (x == DEFAULT_SIZE - 1) to_check_list[1] = 0;
+    if      (y == 0)                to_check_list[2] = 0;
+    else if (y == DEFAULT_SIZE - 1) to_check_list[3] = 0;
+
+    mergeChain(&game, to_check_list, newChain, pos);
+
+    game->turn = (game->turn == WHITE) ? BLACK : WHITE;
+  }
   else fprintf(stderr, "Coordinates out of bounds!! \n");
-  return;
 }
 
 void gameloop(Game* game){
