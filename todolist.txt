@@ -1,0 +1,14 @@
+game logic [done]
+
+test game logic [this]
+
+correct old sgf reader and writer (only needed to read and write main variation)
+
+implement MCTS
+
+implement simple CNN architecture
+
+benchmark
+
+study ways of improving performance
+
