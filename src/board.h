@@ -5,6 +5,7 @@
 #define BOARD_SIZE(x)         x*x
 #define MAX_CHAIN_LIST_SIZE   300
 #define MAX_LIBERTY_LIST_SIZE 300
+#define MAX_MOVES             600
 
 #define LEFT                  0
 #define RIGHT                 1
@@ -40,6 +41,8 @@ typedef struct{
 typedef struct{
   Node Board[BOARD_SIZE(DEFAULT_SIZE)];
   Chain chains[MAX_CHAIN_LIST_SIZE];
+  int moves[MAX_MOVES];
+  int moveCount;
   int chainCount;
   int turn;
   int ko_pos;

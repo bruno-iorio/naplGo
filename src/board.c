@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "board.h"
+#include "sgfwriter.h"
+
 
 int POS_CHECK(int pos, int dir)  {
     if (dir == UP)    return POS_UP(pos);
@@ -83,7 +85,7 @@ int mergeChain(Game *game, int pos, Chain newChain, int* captured_chains){
   return chain_id;
 }
 
-void handle_captures(Game* game, int captured_chains[4], int color){
+void handle_captures(Game* game, int* captured_chains, int color){
   int cap_cnt = 0;
   int last_captured;
   for (int i = 0 ; i != 4 ; i++){
@@ -119,7 +121,7 @@ void handle_captures(Game* game, int captured_chains[4], int color){
 
 void play(Game *game, int x, int y){ 
   int pos = POS(x,y);
-  if (0 <= x && x < DEFAULT_SIZE && 0 <= y  && y <  DEFAULT_SIZE && game->Board[pos].color == EMPTY){
+  if (0 <= x && x < DEFAULT_SIZE && 0 <= y  && y <  DEFAULT_SIZE && game->Board[pos].color == EMPTY && pos != game->ko_pos){
     game->Board[pos].color = game->turn;
 
     Chain newChain;
@@ -144,6 +146,7 @@ void play(Game *game, int x, int y){
     handle_captures(game, captured_chains, game->turn);
     game->turn = (game->turn == WHITE) ? BLACK : WHITE;
     game->chainCount++;
+    game->moves[game->moveCount++] = pos;
   }
   else fprintf(stderr, "INVALID COORDS!! \n");
 }
@@ -202,9 +205,4 @@ void gameloop(Game* game){
   return;
 }
 
-int main(){
-  Game game;
-  memset(&game,0, sizeof(game));
-  gameloop(&game);
-  return 0;
-}
+
