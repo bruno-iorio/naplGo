@@ -8,12 +8,15 @@
 void test_board(){
   Game game;
   memset(&game,0, sizeof(game));
-  gameloop(&game);
+  game_loop(&game);
 }
 
 void test_sgf(){
+  write_input_from_sgf("../sgf_test_files/Ueno_x_yashiro_2020.sgf", "out.txt");
 }
 
 int main(int argc, char *argv[]){
+  //test_sgf();
+  test_board();
  return 0;
 }
