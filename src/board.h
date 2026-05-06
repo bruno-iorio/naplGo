@@ -6,8 +6,9 @@
 // important MACROS
 
 #define DEFAULT_SIZE          19
-#define BOARD_SIZE(x)         x*x
-#define MAX_CHAIN_LIST_SIZE   DEFAULT_SIZE * DEFAULT_SIZE
+
+#define BOARD_SIZE            (DEFAULT_SIZE) * (DEFAULT_SIZE)
+#define MAX_CHAIN_LIST_SIZE   BOARD_SIZE
 #define MAX_LIBERTY_LIST_SIZE 130 
 #define MAX_MOVES             600
 #define UPDATE_CHAIN_DELAY    10
@@ -46,11 +47,10 @@ typedef struct{
   int nextPos;
 } Node;
 
+
 typedef struct{
-  Node Board[BOARD_SIZE(DEFAULT_SIZE)];
+  Node Board[BOARD_SIZE];
   Chain chains[MAX_CHAIN_LIST_SIZE];
-  int moves[MAX_MOVES];
-  int moveCount;
   int chainCount;
   int turn;
   int koPos;
@@ -59,7 +59,7 @@ typedef struct{
   zobristEncoding state;
 } Game;
 
-extern zobristEncoding random_table[2*BOARD_SIZE(DEFAULT_SIZE) + 2];
+extern zobristEncoding random_table[2*BOARD_SIZE + 2];
 
 /* POS aux functions*/
 int POS_CHECK(int pos, int dir);
@@ -68,18 +68,26 @@ int INBOUNDS_CHECK(int pos, int dir);
 /* game logic callbacks */
 int captured_exists(int captured_chains[4]);
 int mark_liberties(Game* game, int pos ,int* mark);
-int merge_chain(Game* game, int pos, Chain newChain, int* captured_chains);
+int merge_chain(Game* game, int pos, Chain newChain); 
+int detect_captures(Game* game, int pos, int* captured_chains);
 void handle_captures(Game* game, int* captured_chains);
 void update_chains_size(Game* game);
+void add_stone(Game* game, int pos);
+void remove_stone(Game* game, int pos);
 
 /* info */
 void print_rules();
 void print_debug(Game* game);
 
-
-/* main functon */
+/* main functions */
 int game_loop(Game* game);
+int game_init(Game* game);
+int game_play(Game* game); 
+int game_eval(Game* game);
+
 int play(Game* game, int x, int y);
+int play_pos(Game* game, int pos);
+
 int eval_winner(Game* game);
 int touch_color(const Game* game, int pos, int color);
 
