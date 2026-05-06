@@ -8,7 +8,7 @@
 void test_board(){
   Game game;
   memset(&game,0, sizeof(game));
-  game_loop(&game);
+  int winner = game_loop(&game);
 }
 
 void test_sgf(){
@@ -17,6 +17,7 @@ void test_sgf(){
 
 int main(int argc, char *argv[]){
   //test_sgf();
+  init_zobrist();
   test_board();
  return 0;
 }

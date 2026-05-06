@@ -14,6 +14,7 @@
 //#define DEBUG_NEXTPOS
 #define DEBUG_CHAINS_INFO
 
+zobristEncoding random_table[2* BOARD_SIZE(DEFAULT_SIZE) + 2];
 
 int POS_CHECK(int pos, int dir)  {
   // returns neighbor of pos at direction dir
@@ -36,6 +37,21 @@ int INBOUNDS_CHECK(int pos, int dir) {
     return 1;
 }
 
+void init_zobrist(){
+  FILE *f = fopen("/dev/urandom", "rb");
+  if (!f){
+    fprintf(stderr, "Issue while reading /dev/urandom\n");
+  }
+  fread(random_table, sizeof(zobristEncoding), 2 * BOARD_SIZE(DEFAULT_SIZE), f);
+  fclose(f);
+}
+
+void hash(zobristEncoding* state , int pos, int color){
+  *state = (*state) ^ random_table[pos * 2 + (color - 1)];
+}
+void hash_pass(zobristEncoding* state){
+  *state = (*state) ^ random_table[2 * DEFAULT_SIZE + 1];
+}
 
 void update_chains_size(Game* game){
   // control the size of game->chains every some moves;
@@ -145,7 +161,7 @@ int merge_chain(Game *game, int pos, Chain newChain, int* captured_chains){
       // linking chains:
       game->Board[search].nextPos = game->chains[chain_id].head; // tail is connected to old head
       game->chains[chain_id].head = pos;                         // pos becomes head of new chain
-
+      
 
       // processing remaining liberties
       search = game->chains[chain_id].head; 
@@ -173,7 +189,7 @@ void handle_captures(Game* game, int* captured_chains){
   // given the captured chains, we remove the stones and update Board;
   int cap_cnt = 0;
   int last_captured;
-
+  
   // we know that len(captured_chains) <= 4
   for (int i = 0 ; i != 4 ; i++){
     if(captured_chains[i] != -1){
@@ -201,6 +217,7 @@ void handle_captures(Game* game, int* captured_chains){
 
         // Now we can set the Board[pos] to the default empty value :
         int next = game->Board[pos].nextPos;
+        hash(&(game->state), pos, game->Board[pos].color);
         game->Board[pos] = (Node) {EMPTY,-1,-1};
         pos = next;
         cap_cnt++;
@@ -223,13 +240,13 @@ void handle_captures(Game* game, int* captured_chains){
         }
       }
 
+      hash(&(game->state), pos, game->Board[pos].color);
       game->Board[pos] = (Node) {EMPTY,-1,-1};
       last_captured = pos;
       cap_cnt++;
 
-
       // just because ...
-      game->chains[captured_chains[i]] = (Chain){-1,-1,-1,-1};
+      game->chains[captured_chains[i]] = (Chain) {-1,-1,-1,-1};
     }
   }
 
@@ -262,13 +279,14 @@ int play(Game *game, int x, int y){
 
     // a move can captures at most 4 chains at a time (each cardinal direction):
     int captured_chains[4] = {-1,-1,-1,-1}; //list of captured chains
-
+    
     if (newChain.id == merge_chain(game, pos, newChain, captured_chains)) game->chains[newChain.id] = newChain;
     else                                                                  game->chainCount--;
     if (!capture_exists(captured_chains) && game->chains[game->Board[pos].chainId].libertyCount == 0) return 3;  // suicided stones without capture
     if (capture_exists(captured_chains)) handle_captures(game, captured_chains);
     game->chainCount++;
     game->moves[game->moveCount++] = pos;
+    hash(&(game->state), pos, game->turn);
     return 0;
   }
   return 1;  // Out of bounds
@@ -327,7 +345,65 @@ void print_rules(){
   return;
 }
 
-void game_loop(Game* game){
+int touch_color(const Game* game, int pos, int color){
+  int visited[BOARD_SIZE(DEFAULT_SIZE)];
+  memset(visited, 0, sizeof(visited));
+  int head=0; 
+  int tail=1;
+  int queue[BOARD_SIZE(DEFAULT_SIZE)];
+
+  queue[head] = pos;
+  while(head < tail){
+  int idx = queue[head++];
+  if (visited[idx] == 1) continue;
+  visited[idx] = 1;
+  for (int dir = 0 ; dir != 4  ; dir++){
+    if (INBOUNDS_CHECK(idx,dir)){
+    int next = POS_CHECK(idx,dir);
+      if (!visited[next] && game->Board[next].color == color) return 1;
+      else if (!visited[next] && game->Board[next].color == EMPTY) queue[tail++] = next;
+      }
+    }
+  }
+  return 0;
+} 
+
+int eval_winner(Game* game){
+  int b_cnt = 0, w_cnt = 0;
+  int visited[BOARD_SIZE(DEFAULT_SIZE)];
+  memset(visited, 0, sizeof(visited));
+  for (int i = 0 ; i != BOARD_SIZE(DEFAULT_SIZE); i++){
+    if (game->Board[i].color == EMPTY && visited[i] == 0){
+      int touch_black = touch_color(game, i, BLACK);
+      int touch_white = touch_color(game, i, WHITE);
+
+      if (touch_black && touch_white) return -1;  // undefined because not everything was captured!
+
+      int queue[BOARD_SIZE(DEFAULT_SIZE)];
+      int head = 0;
+      int tail = 1;
+      queue[head] = i;
+
+      while (head < tail){
+        int idx = queue[head++];
+        if (visited[idx] == 1) continue;
+        visited[idx] = 1;
+
+        if      (touch_black) b_cnt++;
+        else if (touch_white) w_cnt++;
+
+        for (int dir = 0; dir != 4; dir++){
+          int next = POS_CHECK(idx,dir);
+          if (INBOUNDS_CHECK(idx,dir) && game->Board[next].color == EMPTY && !visited[next]) queue[tail++] = next;
+        }
+      }
+    }
+  }
+  return ((float) b_cnt > (float) w_cnt + game->komi);
+}
+
+
+int game_loop(Game* game){
   // pre-setup :
   #ifdef TUI
     print_rules();
@@ -354,9 +430,15 @@ void game_loop(Game* game){
     // player input processing
     int x,y;
     scanf("%d %d",&x,&y);
-    if (x == -1 && y == -1) break; //escape sequence
-    printf("\n");
- 
+
+    if (x == -1 && y == -1){
+      game->pass++;
+      hash_pass(&(game->state));
+      if (game->pass == 2) break;
+      game->turn = (game->turn == WHITE) ? BLACK : WHITE;
+      continue;
+    }
+    game->pass = 0;
     Game tmp = *game; // back up board in case of invalid moves
     int error = play(game, x, y);
     int pos = POS(x,y);
@@ -384,5 +466,6 @@ void game_loop(Game* game){
       print_debug(game);
     #endif
   }
+  return eval_winner(game);
 }
 

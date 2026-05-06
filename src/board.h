@@ -1,14 +1,17 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include <stdint.h>
+
 // important MACROS
 
 #define DEFAULT_SIZE          19
 #define BOARD_SIZE(x)         x*x
-#define MAX_CHAIN_LIST_SIZE   200
+#define MAX_CHAIN_LIST_SIZE   DEFAULT_SIZE * DEFAULT_SIZE
 #define MAX_LIBERTY_LIST_SIZE 130 
 #define MAX_MOVES             600
 #define UPDATE_CHAIN_DELAY    10
+#define DEFAULT_KOMI          7.5
 
 #define LEFT                  0
 #define RIGHT                 1
@@ -27,6 +30,8 @@
 
 
 /* Data Structures */
+
+typedef uint64_t zobristEncoding; 
 
 typedef struct{
   int id;
@@ -49,13 +54,16 @@ typedef struct{
   int chainCount;
   int turn;
   int koPos;
+  int pass;
+  float komi;
+  zobristEncoding state;
 } Game;
 
+extern zobristEncoding random_table[2*BOARD_SIZE(DEFAULT_SIZE) + 2];
 
 /* POS aux functions*/
 int POS_CHECK(int pos, int dir);
 int INBOUNDS_CHECK(int pos, int dir);
-
 
 /* game logic callbacks */
 int captured_exists(int captured_chains[4]);
@@ -70,7 +78,13 @@ void print_debug(Game* game);
 
 
 /* main functon */
-void game_loop(Game* game);
+int game_loop(Game* game);
 int play(Game* game, int x, int y);
+int eval_winner(Game* game);
+int touch_color(const Game* game, int pos, int color);
+
+/* hashing */
+void init_zobrist();
+void hash(zobristEncoding* state, int pos, int color);
 
 #endif // BOARD_H
