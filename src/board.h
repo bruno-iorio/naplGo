@@ -95,4 +95,8 @@ int touch_color(const Game* game, int pos, int color);
 void init_zobrist();
 void hash(zobristEncoding* state, int pos, int color);
 
+int find_legal_moves(Game* game, int* mark);
+int is_move_legal(Game* game, int pos);
+int is_move_self_eye(Game* game, int pos);
+
 #endif // BOARD_H

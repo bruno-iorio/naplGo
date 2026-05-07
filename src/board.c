@@ -53,16 +53,66 @@ void hash_pass(zobristEncoding* state){
   *state = (*state) ^ random_table[2 * DEFAULT_SIZE + 1];
 }
 
+int find_legal_moves(Game* game, int* mark){
+  //marks legal and 
+  int cnt = 0;
+  for (int pos = 0; pos < BOARD_SIZE ; pos++){
+    Game cpy = *game;
+    if (play_pos(&cpy,pos) == 0){ // legal
+      mark[pos] = 1;
+      cnt++;
+    }
+  }
+  return cnt;
+}
 
+int is_move_legal(Game* game,int pos){
+  Game cpy = *game;
+  return !play_pos(&cpy,pos);
+}
 
+int is_move_self_eye(Game* game, int pos) {
+  
+  int x = pos % DEFAULT_SIZE ;
+  int y = pos / DEFAULT_SIZE ;
+  int cnt      = 0 ;
+  int cnt_same = 0 ;
+  int cnt_opp  = 0 ;
 
+  int p[8];
+  int c[8];
+  p[0] = (INBOUNDS_CHECK(x,y-1))   ? POS_UP(pos)     : -1;
+  p[1] = (INBOUNDS_CHECK(x,y+1))   ? POS_DOWN(pos)   : -1;
+  p[2] = (INBOUNDS_CHECK(x-1,y))   ? POS_LEFT(pos)   : -1;
+  p[3] = (INBOUNDS_CHECK(x+1,y))   ? POS_RIGHT(pos)  : -1;
+  p[4] = (INBOUNDS_CHECK(x+1,y+1)) ? POS_RIGHT(p[2]) : -1;
+  p[5] = (INBOUNDS_CHECK(x+1,y-1)) ? POS_RIGHT(p[1]) : -1;
+  p[6] = (INBOUNDS_CHECK(x-1,y+1)) ? POS_LEFT(p[2])  : -1;
+  p[7] = (INBOUNDS_CHECK(x-1,y-1)) ? POS_LEFT(p[1])  : -1;
+  for (int i = 0; i != 8;i++){
+    if (p[i] == -1) {
+      cnt++;
+      c[i] = game->turn;
+      continue;
+    } 
+    if (game->Board[p[i]].color == game->turn) {c[i] = game->turn; cnt_same++;}
+    if (game->Board[p[i]].color != game->turn && game->Board[p[i]].color != EMPTY) {c[i] = game->Board[p[i]].color; cnt_opp++;}
+  }
+  // analise each case
+  if (c[0] == c[1] && c[1] == c[2] && c[3] == c[2] && c[3] == game->turn){
+    if (cnt == 3 && cnt_same >= 2 && cnt_opp == 0 ||
+        cnt == 5 && cnt_same >= 4 && cnt_opp == 0 ||
+        cnt == 8 && cnt_same >= 4 && cnt_opp == 0 || 
+        cnt == 8 && cnt_same == 7 && cnt_opp == 1) return 1;
+  }
+  return 0;
+}
 
 
 
 void update_chains_size(Game* game){
   // control the size of game->chains every some moves;
   // We only want to update game->chains, game->Board[i].chainId 
-  // and game->chainCount.
   Game game2 = *game;
   int cnt = 0;
   for (int i = 0; i < MAX_CHAIN_LIST_SIZE; i++){
@@ -267,16 +317,17 @@ void handle_captures(Game* game, int* captured_chains){
 int play(Game* game,int x, int y){
   // human wrapper
   int pos = POS(x,y);
-  if (x >= 0 && y >= 0 && x <= DEFAULT_SIZE - 1 && y <= DEFAULT_SIZE - 1 && game->Board[pos].color == EMPTY && pos != game->koPos){
+  if (x >= 0 && y >= 0 && x <= DEFAULT_SIZE - 1 && y <= DEFAULT_SIZE - 1){
     return play_pos(game, pos);
   }
-  if (pos == game->koPos) return 2; // ko flag active
   return 1; // out of bounds!!
 }
 
 int play_pos(Game *game, int pos){ 
   // Plays move at pos and updates Game state.
 
+  if (pos == game->koPos) return 2; // ko flag active
+  if (game->Board[pos].color != EMPTY) return 3; // stone already place at pos 
   game->Board[pos].color = game->turn;
 
   //creates newChain containing pos and prepares it for function input
@@ -304,7 +355,7 @@ int play_pos(Game *game, int pos){
   // now we handle captures:
   int captured_chains[4] = {-1,-1,-1,-1}; //list of captured chains
   int num_captured = detect_captures(game,pos,captured_chains);
-  if (!num_captured && game->chains[game->Board[pos].chainId].libertyCount == 0) return 3;  // suicided stones without capture
+  if (!num_captured && game->chains[game->Board[pos].chainId].libertyCount == 0) return 4;  // suicided stones without capture
   if (num_captured) handle_captures(game, captured_chains);
 
   game->chainCount++;
