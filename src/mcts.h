@@ -1,6 +1,10 @@
 #ifndef MCTS_H
 #define MCTS_H
+
+
 #define HASH_TABLE_MAX 100000
+#define CHILDREN_MAX   BOARD_SIZE
+
 #include "board.h"
 #include <math.h>
 
@@ -14,12 +18,11 @@ typedef struct MCNode{
   int turn;
   int numChildren;
   struct MCNode *parent;
-  struct MCNode **children;
-  int capacityChildren
+  struct MCNode* children[CHILDREN_MAX];
 
   Move move; // last move
-  Move* untriedMoves;
-  int numUntriedMoves;
+  Move* unselectedMoves;
+  int numUnselectedMoves;
 
 } MCNode;
 
@@ -27,7 +30,9 @@ typedef struct HashNode {
   zobristEncoding key;
   MCNode* node;
   HashNode* next;
-} HashTableSlot;
+  int w;
+  int n;
+} HashTableNode;
 
 static HashNode* HashTable[HASH_TABLE_MAX];
 

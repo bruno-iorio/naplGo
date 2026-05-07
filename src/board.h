@@ -73,7 +73,7 @@ int detect_captures(Game* game, int pos, int* captured_chains);
 void handle_captures(Game* game, int* captured_chains);
 void update_chains_size(Game* game);
 void add_stone(Game* game, int pos);
-void remove_stone(Game* game, int pos);
+void remove_stone(Game* game, int* pos);
 
 /* info */
 void print_rules();
@@ -83,12 +83,12 @@ void print_debug(Game* game);
 int game_loop(Game* game);
 int game_init(Game* game);
 int game_play(Game* game); 
-int game_eval(Game* game);
+int game_eval(Game* game, float* points_b, float* points_w);
 
 int play(Game* game, int x, int y);
 int play_pos(Game* game, int pos);
 
-int eval_winner(Game* game);
+int eval_winner(Game* game, float* points_b, float* points_w);
 int touch_color(const Game* game, int pos, int color);
 
 /* hashing */

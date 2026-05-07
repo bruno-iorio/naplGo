@@ -4,14 +4,14 @@
 #include "board.h"
 #include "sgfwriter.h"
 
-//#define PRINT_BOARD
+#define PRINT_BOARD
 
-//#define TUI
+#define TUI
 
 #define DEBUG_BOARD
-//#define DEBUG_COLOR
-//#define DEBUG_CHAINS
-//#define DEBUG_NEXTPOS
+#define DEBUG_COLOR
+#define DEBUG_CHAINS
+#define DEBUG_NEXTPOS
 #define DEBUG_CHAINS_INFO
 
 zobristEncoding random_table[2* BOARD_SIZE + 2];
@@ -207,7 +207,7 @@ void remove_stone(Game* game, int* pos){
   // remove stone at pos and update liberties of adjancent stones.
   // also updates hash. it also updates pos to the next in the chain
 
-
+  int color = game->Board[*pos].color;
   int neighbors_chains[4] = {-1,-1,-1,-1};
   for (int dir = 0; dir != 4 ; dir++){
     int pos_check = POS_CHECK(*pos,dir);
@@ -266,8 +266,9 @@ void handle_captures(Game* game, int* captured_chains){
 
 int play(Game* game,int x, int y){
   // human wrapper
+  int pos = POS(x,y);
   if (x >= 0 && y >= 0 && x <= DEFAULT_SIZE - 1 && y <= DEFAULT_SIZE - 1 && game->Board[pos].color == EMPTY && pos != game->koPos){
-    return play(game, pos);
+    return play_pos(game, pos);
   }
   if (pos == game->koPos) return 2; // ko flag active
   return 1; // out of bounds!!
@@ -436,17 +437,24 @@ int game_loop(Game* game){
     if (out == 1) fprintf(stderr, "Invalid values for x and/or y\n");
     else if (out == 2) {
       float points_w, points_b;
-      int winner = game_eval(game, &points_b, &points_b);
+      int winner = game_eval(game, &points_b, &points_w);
 
       if (winner == 1)      printf("BLACK won with %d against %d points\n",points_b,points_w);
       else if (winner == 0) printf("WHITE won with %d against %d points\n",points_w,points_b);
-      else if (winner == -1) {
-        printf("PASS invalid move because cant eval");
-        continue;
-      }
+      // else if (winner == -1) {
+        // printf("PASS invalid move because cant eval");
+        // continue;
+    // }
     return winner;
     }
+    #ifdef PRINT_BOARD
+      print_board(game);
+    #endif
+    #ifdef DEBUG_BOARD
+      print_debug(game);
+    #endif
   }
+
   return -1;
 }
 
@@ -456,49 +464,45 @@ int game_init(Game* game){
   for (int i = 0 ; i != MAX_CHAIN_LIST_SIZE; i++){
     game->chains[i] = (Chain) {-1,-1,-1,-1};
   }
-  for (int i = 0 ; i != ; i++){
+  for (int i = 0 ; i != BOARD_SIZE; i++){
     game->Board[i] = (Node) {EMPTY,-1,-1};
   }
 }
 
 int game_play(Game *game){
-    // invalid moves array;
-    int invalid[BOARD_SIZE];
-    memset(&invalid, 0, sizeof(invalid));
+  // invalid moves array;
+  int invalid[BOARD_SIZE];
+  memset(&invalid, 0, sizeof(invalid));
 
-    #ifdef TUI
-      printf("Play your move: "); 
-    #endif
-    // player input processing
-    int x,y;
-    scanf("%d %d",&x,&y);
+  #ifdef TUI
+    printf("Play your move: "); 
+  #endif
+  // player input processing
+  int x,y;
+  scanf("%d %d",&x,&y);
 
-    if (x == -1 && y == -1){
-      game->pass++;
-      hash_pass(&(game->state));
-      if (game->pass == 2) return 2;
-      game->turn = (game->turn == WHITE) ? BLACK : WHITE;
-      return 0;
-    }
+  if (x == -1 && y == -1){
+    game->pass++;
+    hash_pass(&(game->state));
+    if (game->pass == 2) return 2;
+    game->turn = (game->turn == WHITE) ? BLACK : WHITE;
+    return 0;
+  }
 
-    game->pass = 0;
-    Game tmp = *game; // back up board in case of invalid moves
-    int error = play(game, x, y);
-    int pos = POS(x,y);
-    if (invalid[pos] || error){ 
-      // not allow move and store "invalidness" to avoid recomputation
-      *game = tmp;
-      invalid[pos] = 1;
-      return 1;
-    }
+  game->pass = 0;
+  Game tmp = *game; // back up board in case of invalid moves
+  int error = play(game, x, y);
+  int pos = POS(x,y);
+  if (invalid[pos] || error){ 
+    // not allow move and store "invalidness" to avoid recomputation
+    *game = tmp;
+    invalid[pos] = 1;
+    return 1;
+  }
+  return 0;
+}
 
  int game_eval(Game* game, float* points_b, float* points_w){
-    #ifdef PRINT_BOARD
-      print_board(game);
-    #endif
-    #ifdef DEBUG_BOARD
-      print_debug(game);
-    #endif
   return eval_winner(game,points_b,points_w);
 }
 

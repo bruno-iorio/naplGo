@@ -93,6 +93,7 @@ void write_move(const char* filename, int pos, int turn){
   fclose(f);
   return;
 }
+/*
 
 void write_game(const char* filename, const Game* game){
   FILE *f = fopen(filename, "w");
@@ -113,3 +114,5 @@ void write_game(const char* filename, const Game* game){
   fclose(f);
   return;
 }
+
+*/
