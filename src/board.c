@@ -394,7 +394,7 @@ int play_pos(Game *game, int pos){
 
   game->chainCount++;
   hash(&(game->state), pos, game->turn);
-
+  game->pass = 0;
   game->turn = (game->turn == WHITE) ? BLACK : WHITE;
   return 0;
 }
