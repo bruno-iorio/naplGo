@@ -82,14 +82,13 @@ void print_debug(Game* game);
 
 /* main functions */
 int game_loop(Game* game);
-int game_init(Game* game);
+void game_init(Game* game);
 int game_play(Game* game); 
 int game_eval(Game* game, float* points_b, float* points_w);
 int play(Game* game, int x, int y);
 int play_pos(Game* game, int pos);
 
 /* counters */
-int eval_winner(Game* game, float* points_b, float* points_w);
 int touch_color(const Game* game, int pos, int color);
 
 /* hashing */

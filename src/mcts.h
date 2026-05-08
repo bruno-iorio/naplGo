@@ -34,7 +34,7 @@ typedef struct MCNode{
 typedef struct HashNode {
   zobristEncoding key;
   MCNode* node;
-  HashNode* next;
+  struct HashNode* next;
   int w;
   int n;
 } HashNode;
@@ -45,7 +45,6 @@ UnselectedMoves* remove_unselected(Move* moves, int move_len);
 void create_unselected(UnselectedMoves* head, Move* moves);
 void free_unselected(UnselectedMoves* head);
 
-Node* ht_lookup(zobristEncoding key);
 void ht_init();
 void ht_free();
 void ht_insert(MCNode* node, int w, int n);

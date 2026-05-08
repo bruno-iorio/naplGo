@@ -63,7 +63,7 @@ void hash_pass(zobristEncoding* state){
 
 
 int choose_random_move(Game* game, int* moves, int moves_len){
-  int r = rand() % legal_len;
+  int r = rand() %  moves_len;
   if (moves_len == 0) return -1;
   return moves[r];
 }
@@ -72,7 +72,7 @@ int choose_random_move(Game* game, int* moves, int moves_len){
 int get_good_moves(Game* game, int* good, int* legal_moves, int legal_len){
   int cnt = 0;
   for (int i = 0 ; i < legal_len; i++){
-    if (!is_move_self_eye(game,move)) good[cnt++] = pos;
+    if (!is_move_self_eye(game, legal_moves[i])) good[cnt++] = legal_moves[i];
   }
   return cnt;
 }
@@ -356,7 +356,7 @@ int play_pos(Game *game, int pos){
   if (pos == game->koPos) return 2; // ko flag active
   if (pos == PASS){
     game->koPos = -1;
-    hash_pass(game);
+    hash_pass(&(game->state));
     game->turn = (game->turn == WHITE) ? BLACK : WHITE;
     game->pass++;
     return 0 ;
@@ -446,6 +446,12 @@ void print_debug(Game* game){
       printf("chain: %d ; liberties: %d ; color %d ; head: %d \n", i, game->chains[i].libertyCount, game->chains[i].color, game->chains[i].head);
     }
     #endif
+    int mark[BOARD_SIZE], mark2[BOARD_SIZE];
+    int l = get_legal_moves(game,mark);
+    int l2 = get_good_moves(game,mark2,mark,l);
+    for(int i = 0 ; i < l2 ; i++){
+      printf("%d ",mark2[i]);
+  }
 }
 
 
@@ -480,7 +486,7 @@ int touch_color(const Game* game, int pos, int color){
 }
 
 
-int eval_game(Game* game, float* points_b, float* points_w){
+int game_eval(Game* game, float* points_b, float* points_w){
   // evaluates game position
   int b_cnt = 0, w_cnt = 0;
   int visited[BOARD_SIZE];

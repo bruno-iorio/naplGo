@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "board.h"
+#include "mcts.h"
 #include "sgfwriter.h"
 
 void test_board(){
