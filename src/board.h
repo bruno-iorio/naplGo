@@ -29,6 +29,7 @@
 #define BLACK                 1
 #define WHITE                 2
 
+#define PASS                  BOARD_SIZE
 
 /* Data Structures */
 
@@ -59,7 +60,7 @@ typedef struct{
   zobristEncoding state;
 } Game;
 
-extern zobristEncoding random_table[2*BOARD_SIZE + 2];
+extern zobristEncoding random_table[2*BOARD_SIZE + 1];
 
 /* POS aux functions*/
 int POS_CHECK(int pos, int dir);
@@ -84,10 +85,10 @@ int game_loop(Game* game);
 int game_init(Game* game);
 int game_play(Game* game); 
 int game_eval(Game* game, float* points_b, float* points_w);
-
 int play(Game* game, int x, int y);
 int play_pos(Game* game, int pos);
 
+/* counters */
 int eval_winner(Game* game, float* points_b, float* points_w);
 int touch_color(const Game* game, int pos, int color);
 
@@ -95,6 +96,7 @@ int touch_color(const Game* game, int pos, int color);
 void init_zobrist();
 void hash(zobristEncoding* state, int pos, int color);
 
+/* move quality */
 int find_legal_moves(Game* game, int* mark);
 int is_move_legal(Game* game, int pos);
 int is_move_self_eye(Game* game, int pos);

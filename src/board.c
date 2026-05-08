@@ -14,7 +14,10 @@
 #define DEBUG_NEXTPOS
 #define DEBUG_CHAINS_INFO
 
-zobristEncoding random_table[2* BOARD_SIZE + 2];
+#define RAND_MAX BOARD_SIZE
+
+
+zobristEncoding random_table[2* BOARD_SIZE + 1];
 
 int POS_CHECK(int pos, int dir)  {
   // returns neighbor of pos at direction dir
@@ -23,6 +26,7 @@ int POS_CHECK(int pos, int dir)  {
   if (dir == DOWN)  return POS_DOWN(pos);
   if (dir == LEFT)  return POS_LEFT(pos);
   if (dir == RIGHT) return POS_RIGHT(pos);
+  return -1;
 }
 
 
@@ -34,8 +38,9 @@ int INBOUNDS_CHECK(int pos, int dir) {
       (dir == DOWN  && pos / DEFAULT_SIZE == DEFAULT_SIZE - 1)  ||
       (dir == LEFT  && pos % DEFAULT_SIZE == 0)                 ||
       (dir == RIGHT && pos % DEFAULT_SIZE == DEFAULT_SIZE- 1) ) return 0;
-    return 1;
+  return 1;
 }
+
 
 void init_zobrist(){
   FILE *f = fopen("/dev/urandom", "rb");
@@ -46,30 +51,51 @@ void init_zobrist(){
   fclose(f);
 }
 
+
 void hash(zobristEncoding* state , int pos, int color){
   *state = (*state) ^ random_table[pos * 2 + (color - 1)];
 }
+
+
 void hash_pass(zobristEncoding* state){
-  *state = (*state) ^ random_table[2 * DEFAULT_SIZE + 1];
+  *state = (*state) ^ random_table[2 * DEFAULT_SIZE];
 }
 
-int find_legal_moves(Game* game, int* mark){
-  //marks legal and 
+
+int choose_random_move(Game* game, int* moves, int moves_len){
+  int r = rand() % legal_len;
+  if (moves_len == 0) return -1;
+  return moves[r];
+}
+
+
+int get_good_moves(Game* game, int* good, int* legal_moves, int legal_len){
+  int cnt = 0;
+  for (int i = 0 ; i < legal_len; i++){
+    if (!is_move_self_eye(game,move)) good[cnt++] = pos;
+  }
+  return cnt;
+}
+
+
+int get_legal_moves(Game* game, int* mark){
+  //marks legal and returns how many were found
+
   int cnt = 0;
   for (int pos = 0; pos < BOARD_SIZE ; pos++){
-    Game cpy = *game;
-    if (play_pos(&cpy,pos) == 0){ // legal
-      mark[pos] = 1;
-      cnt++;
+    if (is_move_legal(game, pos)){ // legal
+      mark[cnt++] = pos;
     }
   }
   return cnt;
 }
 
+
 int is_move_legal(Game* game,int pos){
   Game cpy = *game;
   return !play_pos(&cpy,pos);
 }
+
 
 int is_move_self_eye(Game* game, int pos) {
   
@@ -107,7 +133,6 @@ int is_move_self_eye(Game* game, int pos) {
   }
   return 0;
 }
-
 
 
 void update_chains_size(Game* game){
@@ -149,13 +174,6 @@ void update_chains_size(Game* game){
 }
 
 
-
-
-
-
-
-
-
 int capture_exists(int captured_chains[4]){
   // returns 1 if a capture happened, 0 otherwise
   return captured_chains[0] != -1 || captured_chains[1] != -1 || captured_chains[2] != -1 || captured_chains[3] != -1;
@@ -180,6 +198,7 @@ int mark_liberties(Game *game, int pos, int* mark){
   }
   return cnt;
 }
+
 
 int detect_captures(Game *game, int pos,int* captured_chains){
   int cap_cnt = 0;
@@ -238,7 +257,7 @@ int merge_chain(Game *game, int pos, Chain newChain){
       // linking chains:
       game->Board[search].nextPos = game->chains[chain_id].head; // tail is connected to old head
       game->chains[chain_id].head = pos;                         // pos becomes head of new chain
-      
+
 
       // processing remaining liberties
       search = game->chains[chain_id].head; 
@@ -252,6 +271,7 @@ int merge_chain(Game *game, int pos, Chain newChain){
   game->chains[chain_id].libertyCount = lib_cnt;
   return chain_id;
 }
+
 
 void remove_stone(Game* game, int* pos){
   // remove stone at pos and update liberties of adjancent stones.
@@ -282,6 +302,7 @@ void remove_stone(Game* game, int* pos){
   *pos = next;
 
 }
+
 
 void handle_captures(Game* game, int* captured_chains){
   // given the captured chains, we remove the stones and update Board;
@@ -314,6 +335,7 @@ void handle_captures(Game* game, int* captured_chains){
 
 }
 
+
 int play(Game* game,int x, int y){
   // human wrapper
   int pos = POS(x,y);
@@ -323,10 +345,22 @@ int play(Game* game,int x, int y){
   return 1; // out of bounds!!
 }
 
+
 int play_pos(Game *game, int pos){ 
   // Plays move at pos and updates Game state.
+  // exit values: 0 -> valid move ; 
+  // 2 -> ko invalid ; 
+  // 3 -> existing stone invalid ; 
+  // 4 -> suicide invalid ;
 
   if (pos == game->koPos) return 2; // ko flag active
+  if (pos == PASS){
+    game->koPos = -1;
+    hash_pass(game);
+    game->turn = (game->turn == WHITE) ? BLACK : WHITE;
+    game->pass++;
+    return 0 ;
+  }
   if (game->Board[pos].color != EMPTY) return 3; // stone already place at pos 
   game->Board[pos].color = game->turn;
 
@@ -347,7 +381,7 @@ int play_pos(Game *game, int pos){
   }
 
   // a move can captures at most 4 chains at a time (each cardinal direction):
-  if (newChain.id == merge_chain(game, pos, newChain)) 
+  if (newChain.id == merge_chain(game, pos, newChain))
     game->chains[newChain.id] = newChain;
   else
     game->chainCount--;
@@ -365,6 +399,7 @@ int play_pos(Game *game, int pos){
   return 0;
 }
 
+
 void print_board(Game* game){
    for (int j = 0; j != DEFAULT_SIZE ; j++){
       for (int i = 0; i != DEFAULT_SIZE; i++){
@@ -373,6 +408,7 @@ void print_board(Game* game){
       printf("\n");
     }
 }
+
 
 void print_debug(Game* game){
     #ifdef DEBUG_COLOR
@@ -418,6 +454,7 @@ void print_rules(){
   return;
 }
 
+
 int touch_color(const Game* game, int pos, int color){
   int visited[BOARD_SIZE];
   memset(visited, 0, sizeof(visited));
@@ -427,24 +464,28 @@ int touch_color(const Game* game, int pos, int color){
 
   queue[head] = pos;
   while(head < tail){
-  int idx = queue[head++];
-  if (visited[idx] == 1) continue;
-  visited[idx] = 1;
-  for (int dir = 0 ; dir != 4  ; dir++){
-    if (INBOUNDS_CHECK(idx,dir)){
-    int next = POS_CHECK(idx,dir);
-      if (!visited[next] && game->Board[next].color == color) return 1;
-      else if (!visited[next] && game->Board[next].color == EMPTY) queue[tail++] = next;
+    int idx = queue[head++];
+    if (visited[idx] == 1) continue;
+    visited[idx] = 1;
+    for (int dir = 0 ; dir != 4  ; dir++){
+      if (INBOUNDS_CHECK(idx,dir)){
+        int next = POS_CHECK(idx,dir);
+        if (!visited[next] && game->Board[next].color == color) return 1;
+        else if (!visited[next] && game->Board[next].color == EMPTY) queue[tail++] = next;
       }
     }
   }
-  return 0;
-} 
 
-int eval_winner(Game* game, float* points_b, float* points_w){
+  return 0;
+}
+
+
+int eval_game(Game* game, float* points_b, float* points_w){
+  // evaluates game position
   int b_cnt = 0, w_cnt = 0;
   int visited[BOARD_SIZE];
   memset(visited, 0, sizeof(visited));
+
   for (int i = 0 ; i != BOARD_SIZE; i++){
     if (game->Board[i].color == EMPTY && visited[i] == 0){
       int touch_black = touch_color(game, i, BLACK);
@@ -472,6 +513,7 @@ int eval_winner(Game* game, float* points_b, float* points_w){
       }
     }
   }
+
   *points_b = (float) b_cnt;
   *points_w = (float) w_cnt + game->komi ;
   return ((float) b_cnt > (float) w_cnt + game->komi);
@@ -509,9 +551,11 @@ int game_loop(Game* game){
   return -1;
 }
 
-int game_init(Game* game){
+
+void game_init(Game* game){
   game->turn = BLACK;
   game->koPos = -1;
+  game->pass = 0;
   for (int i = 0 ; i != MAX_CHAIN_LIST_SIZE; i++){
     game->chains[i] = (Chain) {-1,-1,-1,-1};
   }
@@ -519,6 +563,7 @@ int game_init(Game* game){
     game->Board[i] = (Node) {EMPTY,-1,-1};
   }
 }
+
 
 int game_play(Game *game){
   // invalid moves array;
@@ -553,7 +598,5 @@ int game_play(Game *game){
   return 0;
 }
 
- int game_eval(Game* game, float* points_b, float* points_w){
-  return eval_winner(game,points_b,points_w);
-}
+
 
