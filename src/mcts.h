@@ -7,6 +7,9 @@
 
 #include "board.h"
 #include <math.h>
+#include <stdlib.h>
+#include <assert.h> 
+
 
 extern const double C;
 typedef int Move;
@@ -24,11 +27,11 @@ typedef struct MCNode{
   int turn;
   int numChildren;
   struct MCNode* parent;
-  struct MCNode** children;
+  struct MCNode* children[CHILDREN_MAX];
 
   Move move;
   int numUnselectedMoves;
-  UnselectedMoves* UnselectedList;
+  UnselectedMoves* unselectedMoves;
 } MCNode;
 
 typedef struct HashNode {
@@ -41,8 +44,8 @@ typedef struct HashNode {
 
 static HashNode** HashTable;
 
-UnselectedMoves* remove_unselected(Move* moves, int move_len);
-void create_unselected(UnselectedMoves* head, Move* moves);
+void remove_unselected(UnselectedMoves* head,Move move);
+UnselectedMoves* create_unselected(Move* moves, int moves_len);
 void free_unselected(UnselectedMoves* head);
 
 void ht_init();
@@ -50,9 +53,9 @@ void ht_free();
 void ht_insert(MCNode* node, int w, int n);
 HashNode* ht_lookup(zobristEncoding state);
 
-int selection(MCNode* node, Game* game);
+MCNode* selection(MCNode* root, Game* game);
 void expansion(MCNode* node, int move, Game* game);
-void simulation(MCNode* node, Game* game);
+int simulation(MCNode* node, Game* game);
 void back_propagation(MCNode* node, int res);
 
 void mcts_loop(int max_it);

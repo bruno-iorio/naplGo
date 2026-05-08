@@ -3,7 +3,8 @@
 #include <string.h>
 #include "board.h"
 #include "sgfwriter.h"
-
+#include <inttypes.h>
+#include <assert.h>
 #define PRINT_BOARD
 
 #define TUI
@@ -47,12 +48,13 @@ void init_zobrist(){
   if (!f){
     fprintf(stderr, "Issue while reading /dev/urandom\n");
   }
-  fread(random_table, sizeof(zobristEncoding), 2 * BOARD_SIZE, f);
+  fread(random_table, sizeof(zobristEncoding), 2 * BOARD_SIZE + 1, f);
   fclose(f);
 }
 
 
 void hash(zobristEncoding* state , int pos, int color){
+  //printf("hashing: %" PRIu64 " %" PRIu64 "\n", *state, random_table[pos*2 + (color - 1)]);
   *state = (*state) ^ random_table[pos * 2 + (color - 1)];
 }
 
@@ -63,8 +65,8 @@ void hash_pass(zobristEncoding* state){
 
 
 int choose_random_move(Game* game, int* moves, int moves_len){
-  int r = rand() %  moves_len;
   if (moves_len == 0) return -1;
+  int r = rand() %  moves_len;
   return moves[r];
 }
 
@@ -329,9 +331,11 @@ void handle_captures(Game* game, int* captured_chains){
       game->chains[captured_chains[i]] = (Chain) {-1,-1,-1,-1};
     }
   }
-
+  
   // update ko flag -> only 1 stone captured then a ko is possible at last_captured
   game->koPos = (cap_cnt == 1) ?  last_captured : -1;
+  if (game->turn == BLACK) game->capturesBlack += cap_cnt;
+  else                     game->capturesWhite += cap_cnt;
 
 }
 
@@ -388,11 +392,12 @@ int play_pos(Game *game, int pos){
 
   // now we handle captures:
   int captured_chains[4] = {-1,-1,-1,-1}; //list of captured chains
-  int num_captured = detect_captures(game,pos,captured_chains);
+  int num_captured = detect_captures(game, pos, captured_chains);
   if (!num_captured && game->chains[game->Board[pos].chainId].libertyCount == 0) return 4;  // suicided stones without capture
   if (num_captured) handle_captures(game, captured_chains);
 
   game->chainCount++;
+  assert(game->chainCount < MAX_CHAIN_LIST_SIZE);
   hash(&(game->state), pos, game->turn);
   game->pass = 0;
   game->turn = (game->turn == WHITE) ? BLACK : WHITE;
@@ -520,9 +525,9 @@ int game_eval(Game* game, float* points_b, float* points_w){
     }
   }
 
-  *points_b = (float) b_cnt;
-  *points_w = (float) w_cnt + game->komi ;
-  return ((float) b_cnt > (float) w_cnt + game->komi);
+  *points_b = (float) b_cnt + (float) game->capturesBlack;
+  *points_w = (float) w_cnt + game->komi + (float) game->capturesWhite ;
+  return (*points_b > *points_w);
 }
 
 
@@ -559,9 +564,15 @@ int game_loop(Game* game){
 
 
 void game_init(Game* game){
+  game->state = 0;
   game->turn = BLACK;
   game->koPos = -1;
   game->pass = 0;
+  game->capturesWhite = 0;
+  game->capturesBlack = 0;
+  game->chainCount = 0;
+  game->komi = 7.5;
+
   for (int i = 0 ; i != MAX_CHAIN_LIST_SIZE; i++){
     game->chains[i] = (Chain) {-1,-1,-1,-1};
   }

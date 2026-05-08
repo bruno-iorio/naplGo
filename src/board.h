@@ -56,9 +56,14 @@ typedef struct{
   int turn;
   int koPos;
   int pass;
+
   float komi;
+  int capturesBlack;
+  int capturesWhite;
+
   zobristEncoding state;
 } Game;
+
 
 extern zobristEncoding random_table[2*BOARD_SIZE + 1];
 
@@ -78,6 +83,7 @@ void remove_stone(Game* game, int* pos);
 
 /* info */
 void print_rules();
+void print_board(Game* game);
 void print_debug(Game* game);
 
 /* main functions */
@@ -96,7 +102,9 @@ void init_zobrist();
 void hash(zobristEncoding* state, int pos, int color);
 
 /* move quality */
-int find_legal_moves(Game* game, int* mark);
+int get_legal_moves(Game* game, int* mark);
+int get_good_moves(Game* game, int* good, int* legal_moves, int legal_len);
+int choose_random_move(Game* game, int* moves, int moves_len);
 int is_move_legal(Game* game, int pos);
 int is_move_self_eye(Game* game, int pos);
 
