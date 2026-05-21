@@ -1,19 +1,18 @@
 
-main: main.o board.o sgfwriter.o mcts.o
-	gcc -g main.o board.o sgfwriter.o mcts.o -o main -lm
+CC = gcc
+OBJS = main.o board.o sgfwriter.o mcts.o
 
-main.o: main.c 
-	gcc -g -c main.c 
+# optimized build (for speed measurement)
+main: $(OBJS)
+	$(CC) -O2 $(OBJS) -o main -lm
 
-board.o: board.c
-	gcc -g -c board.c
+# profiling build (for gprof)
+prof: CFLAGS = -O0 -pg -g
+prof: $(OBJS)
+	$(CC) -O0 -pg -g $(OBJS) -o main_prof -lm
 
-sgfwriter.o: sgfwriter.c
-	gcc -g -c sgfwriter.c
-
-mcts.o: mcts.c 
-	gcc -g -c mcts.c
+%.o: %.c
+	$(CC) $(CFLAGS) -c -g $< -o $@
 
 clean:
-	rm board.o mcts.o sgfwriter.o main.o main
- 
+	rm -f $(OBJS) main main_prof gmon.out

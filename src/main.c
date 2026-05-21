@@ -48,34 +48,41 @@ void test_good_moves(){
   Game game2;
   game_init(&game2);
 
-  play_pos(&game2,POS(0,1));
+  play_pos(&game2,POS(0,0));
 
   play_pos(&game2,POS(18,18));
   
-  play_pos(&game2,POS(1,0));
+  play_pos(&game2,POS(1,1));
 
   play_pos(&game2,POS(16,16));
 
-  play_pos(&game2,POS(1,1));
+  play_pos(&game2,POS(2,0));
  
   play_pos(&game2,POS(10,1));
+  
+
   print_board(&game2);
 
   int moves[BOARD_SIZE], good[BOARD_SIZE];
   int legal_len , good_len;
 
-  legal_len = get_legal_moves(&game2 ,moves);
+  legal_len = get_legal_moves(&game2 , moves);
   good_len  = get_good_moves(&game2, good, moves, legal_len);
+  
+
 
   printf("%d %d \n" , good_len, legal_len);
+  for (int i = 0; i != BOARD_SIZE; i++){
+    printf("%d ", good[i]);
+  }
 }
 
 int main(int argc, char *argv[]){
+  init_zobrist();
   //test_sgf();
   //test_board();
-  init_zobrist();
-  test_good_moves();
+  //test_good_moves();
   //test_zobrist();
-  //test_mcts();
+  test_mcts();
  return 0;
 }
