@@ -1,7 +1,6 @@
 #ifndef MCTS_H
 #define MCTS_H
 
-
 #define HASH_TABLE_MAX 100000
 #define CHILDREN_MAX   BOARD_SIZE
 
@@ -37,7 +36,6 @@ typedef struct MCNode{
 
 typedef struct HashNode {
   zobristEncoding key;
-  MCNode* node;
   struct HashNode* next;
   int w;
   int n;
@@ -48,6 +46,7 @@ static HashNode** HashTable;
 void remove_unselected(UnselectedMoves** head,Move move);
 UnselectedMoves* create_unselected(Move* moves, int moves_len);
 void free_unselected(UnselectedMoves* head);
+Move get_unselected(UnselectedMoves** head, int idx);
 
 void ht_init();
 void ht_free();
@@ -60,9 +59,10 @@ int simulation(MCNode* node, Game* game);
 void back_propagation(MCNode* node, int res);
 int random_playout_move(Game* g);
 
-void mcts_loop(int max_it);
+MCNode* mcts_loop(int max_it);
 void mcts_it(MCNode* root, Game* game);
 void test_mcts();
+void tree_free(MCNode* root, int max_it);
 void print_mctree(MCNode* root, int depth);
 
 #endif // MCTS_H

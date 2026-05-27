@@ -32,7 +32,6 @@ void init_zobrist(){
 
 
 void hash(zobristEncoding* state , int pos, int color){
-  //printf("hashing: %" PRIu64 " %" PRIu64 "\n", *state, random_table[pos*2 + (color - 1)]);
   *state = (*state) ^ random_table[pos * 2 + (color - 1)];
 }
 
@@ -89,7 +88,7 @@ int cnt_opp  = 0 ;
 int p[8];
 int c[8];
 
-p[0] = (y > 0 )               ? POS_UP(pos) : -1;
+p[0] = (y > 0 )               ? POS_UP(pos)     : -1;
 p[1] = (y < DEFAULT_SIZE - 1) ? POS_DOWN(pos)   : -1;
 p[2] = (x > 0)                ? POS_LEFT(pos)   : -1;
 p[3] = (x < DEFAULT_SIZE - 1) ? POS_RIGHT(pos)  : -1;
@@ -115,6 +114,7 @@ if (c[0] == c[1] && c[1] == c[2] && c[3] == c[2] && c[3] == game->turn){
       cnt == 8 && cnt_same >= 4 && cnt_opp == 0 || 
       cnt == 8 && cnt_same == 7 && cnt_opp == 1) return 1;
 }
+
 return 0;
 }
 

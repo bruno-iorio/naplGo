@@ -21,7 +21,6 @@ void ht_insert(MCNode* node, int w, int n){
   HashNode* entry = HashTable[idx];
   HashNode* new_entry = (HashNode*) malloc(sizeof(HashNode));
   new_entry->key = node->state;
-  new_entry->node = node;
   new_entry->next = entry;
   new_entry->w = w;
   new_entry->n = n;
@@ -37,6 +36,7 @@ int best_score(MCNode* node){
   for (int i = 0 ; i < node->numChildren; i++){
     int wi = node->children[i]->w;
     int ni = node->children[i]->n;
+    if (ni == 0) return i;
     double tmp = (double) wi / (double)ni + C * sqrt(log((double)node->n) / (double)ni);
     if (tmp > score){
       score = tmp;
@@ -48,18 +48,20 @@ int best_score(MCNode* node){
 
 
 MCNode* selection(MCNode* root, Game* game) {
-    MCNode* node = root;
-    while (node->numUnselectedMoves == 0){
-      int i = best_score(node);
-      play_pos(game, node->children[i]->move);
-      node = node->children[i];
-    }
-    return node;
+  // we navigate through the graph until we find a node that has yet children to be visited...
+  MCNode* node = root;
+  while (node->numUnselectedMoves == 0){
+    int i = best_score(node);
+    play_pos(game, node->children[i]->move);
+    node = node->children[i];
+  }
+  return node;
 }
 
 
 MCNode* expansion(MCNode* parent, int move, Game* game){
-  play_pos(game,move);
+  // allocate new node and returns it as child.
+  play_pos(game, move);
   MCNode *child = calloc(1, sizeof(MCNode));
   HashNode *entry = ht_lookup(game->state);
   child->state = game->state;
@@ -75,7 +77,7 @@ MCNode* expansion(MCNode* parent, int move, Game* game){
   child->turn = (parent->turn == BLACK) ? WHITE : BLACK;
   child->numChildren = 0;
   child->parent = parent;
-  child->move = move;
+  child->move = move; // move that generated this child.
   parent->children[parent->numChildren++] = child;
   return child;
 }
@@ -119,18 +121,7 @@ int simulation(MCNode* node, Game* game){
   while(s.pass < 2){
     // pick a move
     int move = random_playout_move(&s);
-    //printf ("aa:: %d %d %d \n",move1, move1 / 19, move1 % 19);
-    
     play_pos(&s, move);
-    //print_board(&s);
-    //printf("\n");
-    //print_debug(&s);
-    //printf("\n");
-
-    // assert(is_move_legal(&s, move));
-    // good_len = get_good_moves(&s, good, legal, legal_len);
-    // move = choose_random_move(&s, good, good_len);
-    //sleep(1);
   }
   float b,w;
   //print_board(&s);
@@ -154,12 +145,15 @@ void back_propagation(MCNode* node, int res){
 }
 
 Move get_unselected(UnselectedMoves** head, int idx){
+  // return move that was unselected from the head unselectedMoves linked list
   if (!head || !(*head))
     return -1;
 
   UnselectedMoves *search = *head;
   UnselectedMoves *prev = NULL;
   int i = 0;
+
+  // get search to be the idx-th term of the list and removes it from the list
   while (search && i < idx){
     prev = search;
     search = search->next;
@@ -173,9 +167,10 @@ Move get_unselected(UnselectedMoves** head, int idx){
 
   if (prev)
       prev->next = search->next;
-  else
+  else // prev was never set so idx == 0
       *head = search->next;   // removing head
-
+  
+  // avoid leaks
   free(search);
 
   return move;
@@ -188,11 +183,13 @@ void mcts_it(MCNode* root, Game* game){
 
   // get a random unselected move and expands it;
   // has to garantee that numUnselectedMoves > 0 -> whole point of this
- assert(node->numUnselectedMoves > 0 && node->numUnselectedMoves <= BOARD_SIZE);
+  assert(node->numUnselectedMoves > 0 && node->numUnselectedMoves <= BOARD_SIZE);
 
+  // gets random unselected move id:
   int idx = rand() % node->numUnselectedMoves;
   Move move = get_unselected(&node->unselectedMoves, idx);
-  node->numUnselectedMoves--;
+  node->numUnselectedMoves--; 
+  
   MCNode* child = expansion(node, move, game);
   int res = simulation(child, game);
   back_propagation(child, res);
@@ -204,7 +201,7 @@ void mcts_it(MCNode* root, Game* game){
 // every time expands, has to remove.
 
 
-void mcts_loop(int max_it){
+MCNode* mcts_loop(int max_it){
   MCNode* root = (MCNode*) malloc(sizeof(MCNode));
   root->state = 0;
   root->w = 0;
@@ -212,7 +209,7 @@ void mcts_loop(int max_it){
   root->turn = BLACK;
   root->numChildren = 0;
   root->parent = NULL;
-  root->move = -1;
+  root->move = -1; // arbitrary
   Game game;
   game_init(&game);
   Move board[BOARD_SIZE];
@@ -230,7 +227,7 @@ void mcts_loop(int max_it){
     mcts_it(root, &game);
   }
   print_mctree(root,10);
-  return;
+  return root;
 }
 
 
@@ -286,29 +283,48 @@ void ht_init(){
 }
 
 void ht_free(){
-  // also free nodes ...
   for (int i = 0 ; i != HASH_TABLE_MAX ; i++){
     HashNode *entry = HashTable[i];
     HashNode *next;
     while (entry){
       next = entry->next;
-      free_unselected(entry->node->unselectedMoves);
-      // free(entry->node->children);
-      free(entry->node);
       free(entry);
       entry = next;
     }
   }
+  free(HashTable);
+  return;
+}
 
+void tree_free(MCNode* root, int max_it){
+  MCNode* node;
+  MCNode* queue[2 * max_it]; //at most max_it nodes, but 2*max_it for avoiding wrong access
+  int head = 0;
+  int tail = 1;
+  queue[head] = root;
+  int cnt = 0;
+  while (head != tail){
+    cnt++;
+    node = queue[head++];
+    for(int i = 0; i < node->numChildren; i++){
+      queue[tail++] = node->children[i];
+    }
+    free_unselected(node->unselectedMoves);
+    free(node);
+  }
+  // max_it + 1 nodes in total bc of root
+  if (cnt != max_it + 1) fprintf(stderr, " %d %d something wrong happened somewhere...",max_it,cnt);
   return;
 }
 
 void test_mcts(){
   //assert(100 < HASH_TABLE_MAX);
+  int max_it = 10000;
   srand(time(NULL));
   ht_init();
-  mcts_loop(1000);
+  MCNode* root = mcts_loop(max_it);
   ht_free();
+  tree_free(root, max_it);
 }
 
 void print_mctree(MCNode* node, int depth){
