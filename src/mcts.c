@@ -83,29 +83,17 @@ MCNode* expansion(MCNode* parent, int move, Game* game){
 }
 
 int random_playout_move(Game* g) {
-    for (int tries = 0; tries < 1000; tries++) {
-  
+    // try random moves
+    for (int tries = 0; tries < 50; tries++) {
         int move = rand() % BOARD_SIZE;
-        //printf("a:: %d",move);
-        if (g->Board[move].color != EMPTY)
-            continue;
-
-        if (move == g->koPos)
-            continue;
-
-        if (is_move_self_eye(g, move))
-            continue;
-
+        if (g->Board[move].color != EMPTY) continue;
+        if (move == g->koPos) continue;
         Game tmp = *g;
-        
         if (play_pos(&tmp, move) == 0)
             return move;
     }
-
-    return PASS;
+    return PASS;  // give up after 50 tries → triggers pass → game ends sooner
 }
-
-
 int simulation(MCNode* node, Game* game){
 
   Game s = *game;
@@ -324,7 +312,7 @@ void test_mcts(){
   ht_init();
   MCNode* root = mcts_loop(max_it);
   ht_free();
-  tree_free(root, max_it);
+  //tree_free(root, max_it);
 }
 
 void print_mctree(MCNode* node, int depth){

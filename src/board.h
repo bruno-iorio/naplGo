@@ -19,11 +19,11 @@
 #define UP                    2
 #define DOWN                  3
 
-#define POS(x,y)              y * DEFAULT_SIZE + x
-#define POS_LEFT(pos)         pos - 1
-#define POS_RIGHT(pos)        pos + 1
-#define POS_UP(pos)           pos - DEFAULT_SIZE
-#define POS_DOWN(pos)         pos + DEFAULT_SIZE
+#define POS(x,y)              (y * DEFAULT_SIZE + x)
+#define POS_LEFT(pos)         (pos - 1)
+#define POS_RIGHT(pos)        (pos + 1)
+#define POS_UP(pos)           (pos - DEFAULT_SIZE)
+#define POS_DOWN(pos)         (pos + DEFAULT_SIZE)
 
 #define EMPTY                 0
 #define BLACK                 1
@@ -39,7 +39,7 @@ typedef struct{
   int id;
   int color;
   int head;
-  int libertyCount;
+  uint64_t liberties[6];
 } Chain;
 
 typedef struct{
@@ -68,6 +68,7 @@ typedef struct{
 
 extern zobristEncoding random_table[2*BOARD_SIZE + 1];
 
+extern int neighbors_bounds[BOARD_SIZE][4];
 /* POS aux functions*/
 static inline int POS_CHECK(int pos, int dir) {
   // returns neighbor of pos at direction dir
@@ -79,34 +80,32 @@ static inline int POS_CHECK(int pos, int dir) {
   return -1;
 }
 
-
-static inline int INBOUNDS_CHECK(int pos, int dir) {
-  // check if neighbors of pos at direction dir from pos is
-  // inside of the Board
-
-  if ((dir == UP    && pos / DEFAULT_SIZE == 0)                 ||
-      (dir == DOWN  && pos / DEFAULT_SIZE == DEFAULT_SIZE - 1)  ||
-      (dir == LEFT  && pos % DEFAULT_SIZE == 0)                 ||
-      (dir == RIGHT && pos % DEFAULT_SIZE == DEFAULT_SIZE- 1) ) return 0;
+static inline int check_capture(Game* game, int chain_id){
+  if (game->chains[chain_id].id == -1) return 0;
+  for (int i = 0; i != 6; i++){
+    if (game->chains[chain_id].liberties[i] != 0) return 0;
+  }
   return 1;
 }
+
 
 /* game logic callbacks */
 int captured_exists(int captured_chains[4]);
 int mark_liberties(Game* game, int pos ,int* mark);
-int merge_chain(Game* game, int pos, Chain newChain); 
+void merge_chain(Game* game, int pos, int chain_id); 
 int detect_captures(Game* game, int pos, int* captured_chains);
 void handle_captures(Game* game, int* captured_chains);
 void update_chains_size(Game* game);
 void add_stone(Game* game, int pos);
 int remove_stone(Game* game, int pos);
-
+int liberty_count(Game* game, int chain_id);
 /* info */
 void print_rules();
 void print_board(Game* game);
 void print_debug(Game* game);
 
 /* main functions */
+void init_neighbors();
 int game_loop(Game* game);
 void game_init(Game* game);
 int game_play(Game* game); 

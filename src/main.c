@@ -10,6 +10,7 @@
 void test_board(){
   Game game;
   memset(&game,0, sizeof(game));
+  
   int winner = game_loop(&game);
 }
 
@@ -79,6 +80,7 @@ void test_good_moves(){
 
 int main(int argc, char *argv[]){
   init_zobrist();
+  init_neighbors();
   //test_sgf();
   //test_board();
   //test_good_moves();

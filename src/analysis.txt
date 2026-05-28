@@ -1,0 +1,343 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 36.08      1.05     1.05  8890939     0.00     0.00  merge_chain
+ 14.09      1.46     0.41  8890939     0.00     0.00  detect_captures
+ 12.03      1.81     0.35  8965125     0.00     0.00  play_pos
+  7.56      2.03     0.22 16618804     0.00     0.00  check_capture
+  6.53      2.22     0.19  4157965     0.00     0.00  random_playout_move
+  5.50      2.38     0.16  3590361     0.00     0.00  is_move_self_eye
+  3.44      2.48     0.10  1456930     0.00     0.00  remove_stone
+  2.75      2.56     0.08    19912     0.00     0.00  update_chains_size
+  2.41      2.63     0.07    10001     0.00     0.00  game_init
+  1.72      2.68     0.05    10000     0.00     0.00  game_eval
+  1.37      2.72     0.04   897460     0.00     0.00  handle_captures
+  1.37      2.76     0.04    10000     0.00     0.00  simulation
+  1.37      2.80     0.04     9639     0.00     0.00  best_score
+  0.69      2.82     0.02  9644127     0.00     0.00  hash
+  0.69      2.84     0.02    39639     0.00     0.00  ht_lookup
+  0.69      2.86     0.02                             _init
+  0.34      2.87     0.01    19518     0.00     0.00  liberty_count
+  0.34      2.88     0.01    10001     0.00     0.00  create_unselected
+  0.34      2.89     0.01    10000     0.00     0.00  get_good_moves
+  0.34      2.90     0.01    10000     0.00     0.00  get_legal_moves
+  0.34      2.91     0.01        1     0.01     0.01  init_zobrist
+  0.00      2.91     0.00  3610000     0.00     0.00  is_move_legal
+  0.00      2.91     0.00    74186     0.00     0.00  hash_pass
+  0.00      2.91     0.00    10001     0.00     0.00  ht_insert
+  0.00      2.91     0.00    10000     0.00     0.00  back_propagation
+  0.00      2.91     0.00    10000     0.00     0.00  expansion
+  0.00      2.91     0.00    10000     0.00     0.00  get_unselected
+  0.00      2.91     0.00    10000     0.00     0.00  mcts_it
+  0.00      2.91     0.00    10000     0.00     0.00  selection
+  0.00      2.91     0.00        1     0.00     0.00  ht_free
+  0.00      2.91     0.00        1     0.00     0.00  ht_init
+  0.00      2.91     0.00        1     0.00     0.00  init_neighbors
+  0.00      2.91     0.00        1     0.00     2.88  mcts_loop
+  0.00      2.91     0.00        1     0.00     0.00  print_mctree
+  0.00      2.91     0.00        1     0.00     2.88  test_mcts
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2026 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 0.34% of 2.91 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]     99.3    0.00    2.89                 main [1]
+                0.00    2.88       1/1           test_mcts [3]
+                0.01    0.00       1/1           init_zobrist [28]
+                0.00    0.00       1/1           init_neighbors [35]
+-----------------------------------------------
+                0.00    2.88       1/1           test_mcts [3]
+[2]     99.0    0.00    2.88       1         mcts_loop [2]
+                0.00    2.81   10000/10000       mcts_it [4]
+                0.07    0.00   10001/10001       game_init [16]
+                0.00    0.00       1/10001       create_unselected [27]
+                0.00    0.00       1/10001       ht_insert [31]
+                0.00    0.00       1/1           print_mctree [36]
+-----------------------------------------------
+                0.00    2.88       1/1           main [1]
+[3]     99.0    0.00    2.88       1         test_mcts [3]
+                0.00    2.88       1/1           mcts_loop [2]
+                0.00    0.00       1/1           ht_init [34]
+                0.00    0.00       1/1           ht_free [33]
+-----------------------------------------------
+                0.00    2.81   10000/10000       mcts_loop [2]
+[4]     96.6    0.00    2.81   10000         mcts_it [4]
+                0.04    2.71   10000/10000       simulation [5]
+                0.00    0.04   10000/10000       selection [18]
+                0.00    0.01   10000/10000       back_propagation [24]
+                0.00    0.01   10000/10000       expansion [29]
+                0.00    0.00   10000/10000       get_unselected [32]
+-----------------------------------------------
+                0.04    2.71   10000/10000       mcts_it [4]
+[5]     94.3    0.04    2.71   10000         simulation [5]
+                0.19    1.21 4157965/4157965     random_playout_move [7]
+                0.16    0.89 4157965/8965125     play_pos [6]
+                0.01    0.16   10000/10000       get_good_moves [11]
+                0.05    0.00   10000/10000       game_eval [17]
+                0.01    0.01   10000/10000       get_legal_moves [21]
+                0.01    0.00   10000/10001       create_unselected [27]
+-----------------------------------------------
+                0.00    0.00    9639/8965125     selection [18]
+                0.00    0.00   10000/8965125     expansion [29]
+                0.16    0.89 4157965/8965125     simulation [5]
+                0.19    1.03 4787521/8965125     random_playout_move [7]
+[6]     78.0    0.35    1.92 8965125         play_pos [6]
+                1.05    0.00 8890939/8890939     merge_chain [8]
+                0.41    0.11 8890939/8890939     detect_captures [9]
+                0.04    0.10  897460/897460      handle_captures [13]
+                0.11    0.00 7993479/16618804     check_capture [10]
+                0.08    0.00   19912/19912       update_chains_size [15]
+                0.02    0.00 8187197/9644127     hash [23]
+                0.00    0.00   74186/74186       hash_pass [30]
+-----------------------------------------------
+                0.19    1.21 4157965/4157965     simulation [5]
+[7]     48.2    0.19    1.21 4157965         random_playout_move [7]
+                0.19    1.03 4787521/8965125     play_pos [6]
+-----------------------------------------------
+                1.05    0.00 8890939/8890939     play_pos [6]
+[8]     36.1    1.05    0.00 8890939         merge_chain [8]
+-----------------------------------------------
+                0.41    0.11 8890939/8890939     play_pos [6]
+[9]     18.0    0.41    0.11 8890939         detect_captures [9]
+                0.11    0.00 8625325/16618804     check_capture [10]
+-----------------------------------------------
+                0.11    0.00 7993479/16618804     play_pos [6]
+                0.11    0.00 8625325/16618804     detect_captures [9]
+[10]     7.6    0.22    0.00 16618804         check_capture [10]
+-----------------------------------------------
+                0.01    0.16   10000/10000       simulation [5]
+[11]     5.8    0.01    0.16   10000         get_good_moves [11]
+                0.16    0.00 3590361/3590361     is_move_self_eye [12]
+-----------------------------------------------
+                0.16    0.00 3590361/3590361     get_good_moves [11]
+[12]     5.5    0.16    0.00 3590361         is_move_self_eye [12]
+-----------------------------------------------
+                0.04    0.10  897460/897460      play_pos [6]
+[13]     4.9    0.04    0.10  897460         handle_captures [13]
+                0.10    0.00 1456930/1456930     remove_stone [14]
+-----------------------------------------------
+                0.10    0.00 1456930/1456930     handle_captures [13]
+[14]     3.5    0.10    0.00 1456930         remove_stone [14]
+                0.00    0.00 1456930/9644127     hash [23]
+-----------------------------------------------
+                0.08    0.00   19912/19912       play_pos [6]
+[15]     2.7    0.08    0.00   19912         update_chains_size [15]
+-----------------------------------------------
+                0.07    0.00   10001/10001       mcts_loop [2]
+[16]     2.4    0.07    0.00   10001         game_init [16]
+-----------------------------------------------
+                0.05    0.00   10000/10000       simulation [5]
+[17]     1.7    0.05    0.00   10000         game_eval [17]
+-----------------------------------------------
+                0.00    0.04   10000/10000       mcts_it [4]
+[18]     1.5    0.00    0.04   10000         selection [18]
+                0.04    0.00    9639/9639        best_score [19]
+                0.00    0.00    9639/8965125     play_pos [6]
+-----------------------------------------------
+                0.04    0.00    9639/9639        selection [18]
+[19]     1.4    0.04    0.00    9639         best_score [19]
+-----------------------------------------------
+                0.01    0.00   10000/39639       expansion [29]
+                0.01    0.00   29639/39639       back_propagation [24]
+[20]     0.7    0.02    0.00   39639         ht_lookup [20]
+-----------------------------------------------
+                0.01    0.01   10000/10000       simulation [5]
+[21]     0.7    0.01    0.01   10000         get_legal_moves [21]
+                0.00    0.01 3610000/3610000     is_move_legal [25]
+-----------------------------------------------
+                                                 <spontaneous>
+[22]     0.7    0.02    0.00                 _init [22]
+-----------------------------------------------
+                0.00    0.00 1456930/9644127     remove_stone [14]
+                0.02    0.00 8187197/9644127     play_pos [6]
+[23]     0.7    0.02    0.00 9644127         hash [23]
+-----------------------------------------------
+                0.00    0.01   10000/10000       mcts_it [4]
+[24]     0.5    0.00    0.01   10000         back_propagation [24]
+                0.01    0.00   29639/39639       ht_lookup [20]
+-----------------------------------------------
+                0.00    0.01 3610000/3610000     get_legal_moves [21]
+[25]     0.3    0.00    0.01 3610000         is_move_legal [25]
+                0.01    0.00   19518/19518       liberty_count [26]
+-----------------------------------------------
+                0.01    0.00   19518/19518       is_move_legal [25]
+[26]     0.3    0.01    0.00   19518         liberty_count [26]
+-----------------------------------------------
+                0.00    0.00       1/10001       mcts_loop [2]
+                0.01    0.00   10000/10001       simulation [5]
+[27]     0.3    0.01    0.00   10001         create_unselected [27]
+-----------------------------------------------
+                0.01    0.00       1/1           main [1]
+[28]     0.3    0.01    0.00       1         init_zobrist [28]
+-----------------------------------------------
+                0.00    0.01   10000/10000       mcts_it [4]
+[29]     0.3    0.00    0.01   10000         expansion [29]
+                0.01    0.00   10000/39639       ht_lookup [20]
+                0.00    0.00   10000/8965125     play_pos [6]
+                0.00    0.00   10000/10001       ht_insert [31]
+-----------------------------------------------
+                0.00    0.00   74186/74186       play_pos [6]
+[30]     0.0    0.00    0.00   74186         hash_pass [30]
+-----------------------------------------------
+                0.00    0.00       1/10001       mcts_loop [2]
+                0.00    0.00   10000/10001       expansion [29]
+[31]     0.0    0.00    0.00   10001         ht_insert [31]
+-----------------------------------------------
+                0.00    0.00   10000/10000       mcts_it [4]
+[32]     0.0    0.00    0.00   10000         get_unselected [32]
+-----------------------------------------------
+                0.00    0.00       1/1           test_mcts [3]
+[33]     0.0    0.00    0.00       1         ht_free [33]
+-----------------------------------------------
+                0.00    0.00       1/1           test_mcts [3]
+[34]     0.0    0.00    0.00       1         ht_init [34]
+-----------------------------------------------
+                0.00    0.00       1/1           main [1]
+[35]     0.0    0.00    0.00       1         init_neighbors [35]
+-----------------------------------------------
+                               10000             print_mctree [36]
+                0.00    0.00       1/1           mcts_loop [2]
+[36]     0.0    0.00    0.00       1+10000   print_mctree [36]
+                               10000             print_mctree [36]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2026 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+  [22] _init                  [13] handle_captures         [4] mcts_it
+  [24] back_propagation       [23] hash                    [2] mcts_loop
+  [19] best_score             [30] hash_pass               [8] merge_chain
+  [10] check_capture (board.h) [33] ht_free                [6] play_pos
+  [27] create_unselected      [34] ht_init                [36] print_mctree
+   [9] detect_captures        [31] ht_insert               [7] random_playout_move
+  [29] expansion              [20] ht_lookup              [14] remove_stone
+  [17] game_eval              [35] init_neighbors         [18] selection
+  [16] game_init              [28] init_zobrist            [5] simulation
+  [11] get_good_moves         [25] is_move_legal           [3] test_mcts
+  [21] get_legal_moves        [12] is_move_self_eye       [15] update_chains_size
+  [32] get_unselected         [26] liberty_count

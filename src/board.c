@@ -10,15 +10,15 @@
 #define TUI
 
 #define DEBUG_BOARD
-// #define DEBUG_COLOR
+#define DEBUG_COLOR
 #define DEBUG_CHAINS
-//#define DEBUG_NEXTPOS
+#define DEBUG_NEXTPOS
 #define DEBUG_CHAINS_INFO
 
 
 
 zobristEncoding random_table[2* BOARD_SIZE + 1];
-
+int neighbors_bounds[BOARD_SIZE][4];
 
 
 void init_zobrist(){
@@ -71,8 +71,25 @@ return cnt;
 
 
 int is_move_legal(Game* game,int pos){
-Game cpy = *game;
-return play_pos(&cpy,pos)==0;
+    if (game->Board[pos].color != EMPTY) return 0;  // occupied
+    if (pos == game->koPos) return 0;               // ko
+    // suicide check: would this move have 0 liberties after placement?
+    // a move is legal if:
+    // 1. it has at least one empty neighbor, OR
+    // 2. it connects to a friendly chain with >1 liberty, OR
+    // 3. it captures an enemy chain
+    for (int dir = 0; dir < 4; dir++) {
+        int nb = neighbors_bounds[pos][dir];
+        if (nb == -1) continue;
+        if (game->Board[nb].color == EMPTY) return 1;
+        if (game->Board[nb].color == game->turn) {
+            if (liberty_count(game,game->Board[nb].chainId) > 1) return 1;
+        }
+        if (game->Board[nb].color != game->turn) {
+            if (liberty_count(game,game->Board[nb].chainId) == 1) return 1; // capture
+        }
+    }
+    return 0;  // suicide
 }
 
 // int next_is_big_capture()
@@ -119,13 +136,21 @@ return 0;
 }
 
 
+
+int liberty_count(Game* game, int chain_id){
+  int cnt = 0;
+    for (int i = 0; i < 6; i++)
+        cnt += __builtin_popcountll(game->chains[chain_id].liberties[i]);
+    return cnt;
+}
+
 void update_chains_size(Game* game){
 // control the size of game->chains every some moves;
 // We only want to update game->chains, game->Board[i].chainId 
 Game game2 = *game;
 int cnt = 0;
 for (int i = 0; i < MAX_CHAIN_LIST_SIZE; i++){
-  game2.chains[i] = (Chain) {-1,-1,-1,-1};
+  game2.chains[i] = (Chain) {-1,-1,-1, {0,0,0,0,0,0}};
 }
 
 for (int c_id = 0; c_id != game->chainCount; c_id++){
@@ -138,7 +163,9 @@ for (int c_id = 0; c_id != game->chainCount; c_id++){
     game2.chains[cnt].id           = cnt;
     game2.chains[cnt].head         = head;
     game2.chains[cnt].color        = game->chains[c_id].color;
-    game2.chains[cnt].libertyCount = game->chains[c_id].libertyCount;
+    for(int k = 0; k !=6 ; k++){
+      game2.chains[cnt].liberties[k] = game->chains[c_id].liberties[k];
+    }
     
     // iterate over chain to update the Board[i].chainId
     while (game->Board[search].nextPos != -1){
@@ -159,138 +186,99 @@ game2.chainCount = cnt;
 
 
 int capture_exists(int captured_chains[4]){
-// returns 1 if a capture happened, 0 otherwise
-return captured_chains[0] != -1 || captured_chains[1] != -1 || captured_chains[2] != -1 || captured_chains[3] != -1;
+  // returns 1 if a capture happened, 0 otherwise
+  return captured_chains[0] != -1 || captured_chains[1] != -1 || captured_chains[2] != -1 || captured_chains[3] != -1;
 }
-
-
-int mark_liberties(Game *game, int pos, int* mark){
-// Auxiliary function to count the liberties of a Chain.
-// Mark is the liberties a group containing the stone at pos.
-// if a neighbor of pos is empty, checks if mark[neighbor] 
-// was already counted and, if it was not, updated cnt
-
-int cnt = 0;
-for (int dir = 0; dir != 4; dir++){
-  int pos_check = POS_CHECK(pos,dir);
-  if (INBOUNDS_CHECK(pos,dir) && game->Board[pos_check].color == EMPTY)  {
-    if (mark[pos_check] == 0){
-      cnt++;
-      mark[pos_check] = 1;
-    }
-  }
-}
-return cnt;
-}
-
 
 int detect_captures(Game *game, int pos,int* captured_chains){
-int cap_cnt = 0;
-int seen_neighbors[4] = {-1,-1,-1,-1};
-for (int dir = 0; dir != 4; dir++){
-  int pos_check = POS_CHECK(pos,dir);
-  if (INBOUNDS_CHECK(pos, dir) && game->Board[pos_check].color != game->Board[pos].color && game->Board[pos_check].color != EMPTY){ 
-    int seen = 0;
-    for (int i = 0 ; i != 4 ; i++){
-        if (seen_neighbors[i] == game->Board[pos_check].chainId) seen = 1;
-    }
-      // neighbor contains an opponent chain -> update liberties of opp chain and check if captured
-    if (seen) continue;
-    seen_neighbors[dir] = game->Board[pos_check].chainId;
-    game->chains[game->Board[pos_check].chainId].libertyCount--;
-    if(game->chains[game->Board[pos_check].chainId].libertyCount == 0){
-      captured_chains[cap_cnt++] = game->Board[pos_check].chainId;
+  int cap_cnt = 0;
+  int seen_neighbors[4] = {-1,-1,-1,-1};
+  for (int dir = 0; dir != 4; dir++){
+    int pos_check = neighbors_bounds[pos][dir];
+    if ( pos_check != -1 && game->Board[pos_check].color != game->Board[pos].color && game->Board[pos_check].color != EMPTY){ 
+      int seen = 0;
+      for (int i = 0 ; i != 4 ; i++){
+          if (seen_neighbors[i] == game->Board[pos_check].chainId) seen = 1;
+      }
+        // neighbor contains an opponent chain -> update liberties of opp chain and check if captured
+      if (seen) continue;
+      seen_neighbors[dir] = game->Board[pos_check].chainId;
+      if(check_capture(game, game->Board[pos_check].chainId)){
+        captured_chains[cap_cnt++] = game->Board[pos_check].chainId;
+      }
     }
   }
+  return cap_cnt;
 }
-return cap_cnt;
-}
 
 
-int merge_chain(Game *game, int pos, Chain newChain){
-// check if new chain and other chains need merge, if yes, merge them and update libertyList
-// Otherwise add new chain to chain list and update chain Count and libertiesList of the old chain;
-//
-// how merging works: 
-// if merge needed, we iterate over the chain that contains pos, and change their chainId to the chainId
-// of the chain we are merging with. and we set the head of the chain to pos and we connect that tail of 
-// the chain containing pos to the old head of the other chain we are merging with.
-//
-// at the same time, we count liberties to update it.
+void merge_chain(Game *game, int pos, int chain_id){
+  // check if new chain and other chains need merge, if yes, merge them and update libertyList
+  // Otherwise add new chain to chain list and update chain Count and libertiesList of the old chain;
+  //
+  // how merging works: 
+  // if merge needed, we iterate over the chain that contains pos, and change their chainId to the chainId
+  // of the chain we are merging with. and we set the head of the chain to pos and we connect that tail of 
+  // the chain containing pos to the old head of the other chain we are merging with.
+  //
+  // at the same time, we count liberties to update it.
+  
+  int color = game->Board[pos].color;
+  for (int dir = 0 ; dir < 4; dir++){
+    int pos_check = neighbors_bounds[pos][dir];
+    if ( pos_check != -1 && game->Board[pos_check].color == color && game->Board[pos_check].chainId != chain_id){
+      // if valid and merging is necessary pos becomes the head and chain_id changes
+      int old_chain = game->Board[pos_check].chainId; // old is the already existing;
 
-int chain_id =  newChain.id;
+      game->Board[pos].chainId = chain_id;
+      game->chains[chain_id].head = pos;
+      game->Board[pos].nextPos = game->chains[old_chain].head;
 
-int cap_cnt = 0;
-int lib_cnt = 0;
+      game->chains[chain_id].liberties[pos / 64] &= ~(1ULL << (pos % 64));
+      game->chains[old_chain].liberties[pos / 64] &= ~(1ULL << (pos % 64));
 
-int merged = 0;
-for (int dir = 0 ; dir < 4; dir++){
-  int pos_check = POS_CHECK(pos,dir);
-  if (INBOUNDS_CHECK(pos,dir) && game->Board[pos_check].color == game->Board[pos].color && game->Board[pos_check].chainId != game->Board[pos].chainId){
-    // if valid and merging is necessary pos becomes the head and chain_id changes
-    int search = pos;
-    int old_chain = chain_id;
-    
-    chain_id = game->Board[pos_check].chainId;
+      int search = game->chains[chain_id].head; // start at pos
+      int guard = 0;
 
-    while (game->Board[search].nextPos != -1) {
-      game->Board[search].chainId = chain_id;
-      search = game->Board[search].nextPos;
+      while(search != -1){
+        //fprintf(stderr,"%d %d \n",color, game->Board[pos_check].color);
+        assert (guard == 0 || search != pos );
+        game->Board[search].chainId = chain_id;
+        search = game->Board[search].nextPos;
+        guard++;
+      }
+
+      // merge liberties : 
+      for(int i = 0; i != 6 ; i++){
+          game->chains[chain_id].liberties[i] |= game->chains[old_chain].liberties[i];
+        }
+      game->chains[old_chain] = (Chain) {-1,-1,-1,{0,0,0,0,0,0}};
     }
-
-    // linking chains:
-    game->chains[search] ;
-    game->Board[search].nextPos = game->chains[chain_id].head;
-    game->Board[search].chainId = chain_id;
-    game->chains[chain_id].head = pos;                         // pos becomes head of new chain
-
-    game->chains[old_chain] = (Chain) {-1,-1,-1,-1};
-    // merge detected: 
-    merged = 1;
+    if (pos_check != -1 && game->Board[pos_check].color != game->Board[pos].color && game->Board[pos_check].color != EMPTY){
+      //update liberties of opp stones:
+      game->chains[game->Board[pos_check].chainId].liberties[pos / 64] &= ~(1ULL << (pos % 64));
     }
   }
-  // processing liberties
-  if(merged){
-    int search = game->chains[chain_id].head; 
-    int mark[BOARD_SIZE];
-    memset(mark, 0, sizeof(mark));
-    while (search  !=  -1) {
-      lib_cnt += mark_liberties(game, search, mark);
-      search = game->Board[search].nextPos;
-    }
-  game->chains[chain_id].libertyCount = lib_cnt;
-  }
-  return chain_id;
 }
 
 
 int remove_stone(Game* game, int pos){
-// remove stone at pos and update liberties of adjancent stones.
-// also updates hash. it also returns the next in the chain
+  // remove stone at pos and update liberties of adjancent stones.
+  // also updates hash. it also returns the next in the chain
 
-int color = game->Board[pos].color;
-int neighbors_chains[4] = {-1,-1,-1,-1};
-for (int dir = 0; dir != 4 ; dir++){
-  int pos_check = POS_CHECK(pos,dir);
-  if (INBOUNDS_CHECK(pos,dir) && game->Board[pos_check].color != color && game->Board[pos_check].color != EMPTY){
-    int neighbors_chain_id = game->Board[pos_check].chainId;
-
-    // we check if the same chain is touched more than one time by a stone :
-    if ( neighbors_chains[0] != neighbors_chain_id &&
-          neighbors_chains[1] != neighbors_chain_id &&
-          neighbors_chains[2] != neighbors_chain_id &&
-          neighbors_chains[3] != neighbors_chain_id &&
-          neighbors_chain_id  != -1 ) {
-      game->chains[neighbors_chain_id].libertyCount++;
-      neighbors_chains[dir] = neighbors_chain_id;
+  int color = game->Board[pos].color;
+  for (int dir = 0; dir != 4 ; dir++){
+    int pos_check = neighbors_bounds[pos][dir];
+    if (pos_check != -1 && game->Board[pos_check].color != color && game->Board[pos_check].color != EMPTY){
+      int neighbors_chain_id = game->Board[pos_check].chainId;
+      game->chains[neighbors_chain_id].liberties[pos / 64] |= 1ULL << (pos % 64);
     }
   }
-}
-// Now we can set the Board[pos] to the default empty value :
-int next = game->Board[pos].nextPos;
-hash(&(game->state), pos, game->Board[pos].color);
-game->Board[pos] = (Node) {EMPTY,-1,-1};
-return next;
+  // Now we can set the Board[pos] to the default empty value :
+  int next = game->Board[pos].nextPos;
+  hash(&(game->state), pos, game->Board[pos].color);
+  game->Board[pos] = (Node) {EMPTY,-1,-1};
+  return next;
 }
 
 
@@ -320,7 +308,7 @@ for (int i = 0 ; i != 4 ; i++){
       cap_cnt++;
 
       // just because ...
-      game->chains[captured_chains[i]] = (Chain) {-1,-1,-1,-1};
+      game->chains[captured_chains[i]] = (Chain) {-1,-1,-1,{0,0,0,0,0,0}};
     }
   }
   
@@ -347,8 +335,7 @@ int play_pos(Game *game, int pos){
   // exit values: 0 -> valid move ; 
   // 2 -> ko invalid ; 
   // 3 -> existing stone invalid ; 
-  // 4 -> suicide invalid ;
-
+  // 4 -> suicide invalid ; 
   if (pos == game->koPos) return 2; // ko flag active
   if (pos == PASS){
     game->koPos = -1;
@@ -360,6 +347,7 @@ int play_pos(Game *game, int pos){
 
   if (game->Board[pos].color != EMPTY) return 3; // stone already place at pos 
 
+  //fprintf(stderr,"turn: %d\n",game->turn);
   game->Board[pos].color = game->turn;
 
   //creates newChain containing pos 
@@ -368,25 +356,23 @@ int play_pos(Game *game, int pos){
   newChain.color        = game->turn;
   newChain.head         = pos;
   newChain.id           = game->chainCount;
-  newChain.libertyCount = 0;
+  memset(newChain.liberties, 0 , sizeof(newChain.liberties)) ;
 
   game->Board[pos].chainId = newChain.id;
-
   for (int dir = 0 ; dir < 4; dir++){
-    if (INBOUNDS_CHECK(pos,dir) && game->Board[POS_CHECK(pos,dir)].color == EMPTY){
-      newChain.libertyCount++;
+    if (neighbors_bounds[pos][dir] != -1 && game->Board[neighbors_bounds[pos][dir]].color == EMPTY){
+      newChain.liberties[neighbors_bounds[pos][dir] / 64] |= 1ULL << (neighbors_bounds[pos][dir] % 64);
     }
   }
 
-  // a move can captures at most 4 chains at a time (each cardinal direction):
-  if (newChain.id == merge_chain(game, pos, newChain)){
-    game->chains[newChain.id] = newChain;
-    game->chainCount++;
-  }
+  game->chains[newChain.id] = newChain;
+  game->chainCount++;
+  merge_chain(game, pos, newChain.id);
+
   // now we handle captures:
   int captured_chains[4] = {-1,-1,-1,-1}; //list of captured chains
   int num_captured = detect_captures(game, pos, captured_chains);
-  if (!num_captured && game->chains[game->Board[pos].chainId].libertyCount == 0) return 4;  // suicided stones without capture
+  if (!num_captured && check_capture(game, game->Board[pos].chainId)) return 4;  // suicided stones without capture
   if (num_captured) handle_captures(game, captured_chains);
   
   // assert(game->chainCount < MAX_CHAIN_LIST_SIZE);
@@ -394,7 +380,7 @@ int play_pos(Game *game, int pos){
   game->pass = 0;
   game->turn = (game->turn == WHITE) ? BLACK : WHITE;
   game->moveCount++;
-  if (game->chainCount > MAX_CHAIN_LIST_SIZE / 2)
+  if (game->chainCount > MAX_CHAIN_LIST_SIZE - 4)
     update_chains_size(game);
    // if (game->chains[game->Board[pos].chainId].libertyCount == 0) printf("asdasd");
   return 0;
@@ -444,7 +430,7 @@ void print_debug(Game* game){
 
     #ifdef DEBUG_CHAINS_INFO
     for (int i = 0; i < game->chainCount; i++){
-      printf("chain: %d ; liberties: %d ; color %d ; head: %d \n", i, game->chains[i].libertyCount, game->chains[i].color, game->chains[i].head);
+      printf("chain: %d ; liberties: %d ; color %d ; head: %d \n", i, liberty_count(game,i), game->chains[i].color, game->chains[i].head);
     }
     #endif
     int mark[BOARD_SIZE], mark2[BOARD_SIZE];
@@ -475,8 +461,8 @@ int touch_color(const Game* game, int pos, int color){
     if (visited[idx] == 1) continue;
     visited[idx] = 1;
     for (int dir = 0 ; dir != 4  ; dir++){
-      if (INBOUNDS_CHECK(idx,dir)){
-        int next = POS_CHECK(idx,dir);
+      if (neighbors_bounds[idx][dir] != -1){
+        int next = neighbors_bounds[idx][dir];
         if (!visited[next] && game->Board[next].color == color) return 1;
         else if (!visited[next] && game->Board[next].color == EMPTY) queue[tail++] = next;
       }
@@ -573,10 +559,10 @@ int game_eval(Game* game, float* points_b, float* points_w) {
 
             for (int dir = 0; dir < 4; dir++) {
 
-                if (!INBOUNDS_CHECK(pos, dir))
+                if (neighbors_bounds[pos][dir]==-1)
                     continue;
 
-                int next = POS_CHECK(pos, dir);
+                int next = neighbors_bounds[pos][dir];
                 int color = game->Board[next].color;
 
                 if (color == EMPTY) {
@@ -655,9 +641,9 @@ void game_init(Game* game){
   game->capturesBlack = 0;
   game->chainCount = 0;
   game->komi = 7.5;
-
+  //fprintf(stderr,"asdasd");
   for (int i = 0 ; i != MAX_CHAIN_LIST_SIZE; i++){
-    game->chains[i] = (Chain) {-1,-1,-1,-1};
+    game->chains[i] = (Chain) {-1,-1,-1,{0,0,0,0,0,0}};
   }
   for (int i = 0 ; i != BOARD_SIZE; i++){
     game->Board[i] = (Node) {EMPTY,-1,-1};
@@ -698,5 +684,17 @@ int game_play(Game *game){
   return 0;
 }
 
+void init_neighbors(){
+  for (int x = 0 ; x != DEFAULT_SIZE; x++){
+    for (int y = 0 ; y != DEFAULT_SIZE; y++){
+      for (int dir = 0; dir != 4; dir++){
+        neighbors_bounds[x+y*DEFAULT_SIZE][0] = (x > 0) ?  x - 1 + y * DEFAULT_SIZE : -1;
+        neighbors_bounds[x+y*DEFAULT_SIZE][1] = (x < DEFAULT_SIZE - 1) ? x + 1 + y * DEFAULT_SIZE: -1;
+        neighbors_bounds[x+y*DEFAULT_SIZE][2] = (y > 0) ? x + (y-1)*DEFAULT_SIZE : -1;
+        neighbors_bounds[x+y*DEFAULT_SIZE][3] = (y < DEFAULT_SIZE - 1) ? x + (y+1)*DEFAULT_SIZE : -1;
+      }
+    }
+  }
+}
 
 
